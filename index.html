@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python Code Editor with JSON Input</title>
+    <title>Python Code Editor with JSON Input/Output</title>
     
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
@@ -17,7 +17,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
         }
         
@@ -27,11 +27,13 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
         }
 
         .editors-wrapper {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1.5fr 1fr;
             gap: 20px;
             margin-bottom: 20px;
         }
@@ -40,6 +42,7 @@
             height: 300px;
             border: 1px solid #ddd;
             border-radius: 4px;
+            flex-grow: 1;
         }
         
         #output {
@@ -62,6 +65,7 @@
             cursor: pointer;
             font-size: 16px;
             margin-top: 10px;
+            align-self: flex-start;
         }
         
         button:hover {
@@ -78,39 +82,148 @@
             margin-top: 5px;
             font-size: 14px;
         }
+
+        .execution-error {
+            margin-top: 10px;
+            color: #ff4444;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Python Code Editor with JSON Input</h1>
+        <h1>Python Code Editor with JSON Input/Output</h1>
         <div class="editors-wrapper">
-            <div class="editor-container">
-                <div class="editor-label">Python Code</div>
-                <textarea id="code"># The input data is already available as input_json_str
-data = json.loads(input_json_str)
-
-# Now we can safely use the data
-print(f"Received input: {json.dumps(data, indent=2)}")
-
-# Example: Process the data
-if "numbers" in data:
-    print(f"Sum of numbers: {sum(data['numbers'])}")
-</textarea>
-            </div>
             <div class="editor-container">
                 <div class="editor-label">JSON Input</div>
                 <textarea id="json-input">{
-    "example": "data",
-    "numbers": [1, 2, 3],
-    "nested": {
-        "key": "value"
-    }
+  "fund": {
+    "name": "Green Future Fund",
+    "assets": [
+      {
+        "name": "SolarTech Industries",
+        "data": {
+          "January": {
+            "CO2_emission": 120.5,
+            "Board_Diversity": {
+              "female_percentage": 30,
+              "minority_percentage": 15
+            }
+          },
+          "February": {
+            "CO2_emission": 118.3,
+            "Board_Diversity": {
+              "female_percentage": 30,
+              "minority_percentage": 15
+            }
+          },
+          "March": {
+            "CO2_emission": 115.8,
+            "Board_Diversity": {
+              "female_percentage": 35,
+              "minority_percentage": 18
+            }
+          }
+        }
+      },
+      {
+        "name": "WindCore Solutions",
+        "data": {
+          "January": {
+            "CO2_emission": 98.7,
+            "Board_Diversity": {
+              "female_percentage": 40,
+              "minority_percentage": 20
+            }
+          },
+          "February": {
+            "CO2_emission": 95.1,
+            "Board_Diversity": {
+              "female_percentage": 42,
+              "minority_percentage": 21
+            }
+          },
+          "March": {
+            "CO2_emission": 92.4,
+            "Board_Diversity": {
+              "female_percentage": 43,
+              "minority_percentage": 22
+            }
+          }
+        }
+      }
+    ]
+  }
 }</textarea>
                 <div id="json-error" class="error"></div>
             </div>
+            <div class="editor-container">
+                <div class="editor-label">Python Code</div>
+                <textarea id="code"># Parse the input JSON
+data = json.loads(input_json_str)
+
+def calculate_asset_metrics(asset_data):
+    """Calculate aggregated metrics for an asset."""
+    months = asset_data["data"].keys()
+    
+    # Initialize aggregates
+    co2_values = []
+    female_percentages = []
+    minority_percentages = []
+    
+    # Collect values across months
+    for month in months:
+        month_data = asset_data["data"][month]
+        co2_values.append(month_data["CO2_emission"])
+        female_percentages.append(month_data["Board_Diversity"]["female_percentage"])
+        minority_percentages.append(month_data["Board_Diversity"]["minority_percentage"])
+    
+    return {
+        "name": asset_data["name"],
+        "metrics": {
+            "CO2_emission": {
+                "average": round(sum(co2_values) / len(co2_values), 2),
+                "min": round(min(co2_values), 2),
+                "max": round(max(co2_values), 2),
+                "trend": round(co2_values[-1] - co2_values[0], 2)  # Positive means increase
+            },
+            "Board_Diversity": {
+                "female_percentage": {
+                    "average": round(sum(female_percentages) / len(female_percentages), 2),
+                    "min": min(female_percentages),
+                    "max": max(female_percentages),
+                    "trend": round(female_percentages[-1] - female_percentages[0], 2)
+                },
+                "minority_percentage": {
+                    "average": round(sum(minority_percentages) / len(minority_percentages), 2),
+                    "min": min(minority_percentages),
+                    "max": max(minority_percentages),
+                    "trend": round(minority_percentages[-1] - minority_percentages[0], 2)
+                }
+            }
+        }
+    }
+
+# Process each asset
+result = {
+    "fund_name": data["fund"]["name"],
+    "analysis_period": "Q1",  # Assuming January-March is Q1
+    "assets_analysis": [
+        calculate_asset_metrics(asset)
+        for asset in data["fund"]["assets"]
+    ]
+}
+
+# Output the formatted result
+print(json.dumps(result, indent=2))</textarea>
+                <button onclick="runPython()">Run Code</button>
+                <div id="execution-error" class="execution-error"></div>
+            </div>
+            <div class="editor-container">
+                <div class="editor-label">JSON Output</div>
+                <textarea id="json-output"></textarea>
+            </div>
         </div>
-        <button onclick="runPython()">Run Code</button>
-        <div id="output"></div>
     </div>
 
     <!-- CodeMirror JS -->
@@ -133,7 +246,7 @@ if "numbers" in data:
             extraKeys: {"Tab": "indentMore"}
         });
 
-        // Initialize CodeMirror for JSON
+        // Initialize CodeMirror for JSON Input
         let jsonEditor = CodeMirror.fromTextArea(document.getElementById("json-input"), {
             mode: { name: "javascript", json: true },
             theme: "monokai",
@@ -141,6 +254,16 @@ if "numbers" in data:
             matchBrackets: true,
             autoCloseBrackets: true,
             extraKeys: {"Tab": "indentMore"}
+        });
+
+        // Initialize CodeMirror for JSON Output
+        let jsonOutputEditor = CodeMirror.fromTextArea(document.getElementById("json-output"), {
+            mode: { name: "javascript", json: true },
+            theme: "monokai",
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            readOnly: true
         });
 
         // Initialize Pyodide
@@ -161,6 +284,15 @@ if "numbers" in data:
             }
         }
 
+        // Function to format JSON string
+        function formatJSON(str) {
+            try {
+                return JSON.stringify(JSON.parse(str), null, 2);
+            } catch (e) {
+                return str;
+            }
+        }
+
         // Function to run Python code
         async function runPython() {
             if (!pyodide) {
@@ -170,8 +302,12 @@ if "numbers" in data:
 
             const code = editor.getValue();
             const jsonInput = jsonEditor.getValue();
-            const output = document.getElementById("output");
             const jsonError = document.getElementById("json-error");
+            const executionError = document.getElementById("execution-error");
+            
+            // Clear previous errors
+            jsonError.textContent = "";
+            executionError.textContent = "";
             
             // Validate JSON
             const jsonValidation = isValidJSON(jsonInput);
@@ -179,7 +315,6 @@ if "numbers" in data:
                 jsonError.textContent = `Invalid JSON: ${jsonValidation.error}`;
                 return;
             }
-            jsonError.textContent = "";
 
             try {
                 // Redirect stdout to capture print statements
@@ -198,12 +333,17 @@ if "numbers" in data:
                 
                 // Get the captured output
                 const stdout = pyodide.runPython("sys.stdout.getvalue()");
-                output.innerHTML = stdout || "Code executed successfully!";
                 
                 // Reset stdout
                 pyodide.runPython("sys.stdout = sys.__stdout__");
+
+                // Try to parse the output as JSON and format it
+                const formattedOutput = formatJSON(stdout);
+                jsonOutputEditor.setValue(formattedOutput);
+
             } catch (error) {
-                output.innerHTML = `Error: ${error.message}`;
+                executionError.textContent = `Error: ${error.message}`;
+                jsonOutputEditor.setValue("");
             }
         }
     </script>
