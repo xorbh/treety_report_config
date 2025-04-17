@@ -10,8 +10,165 @@ let currentChartId = null;
 let co2Chart = null;
 let diversityChart = null;
 
-// Initialize Pyodide
-let pyodide;
+// Tab Functionality
+function switchTab(tabId) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Deactivate all tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Show selected tab content and activate tab
+    document.getElementById(tabId).classList.add('active');
+    document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+    
+    // Resize charts if switching to charts tab
+    if (tabId === 'charts' && co2Chart && diversityChart) {
+        co2Chart.resize();
+        diversityChart.resize();
+    }
+
+    // Update report preview if switching to report tab
+    if (tabId === 'report') {
+        try {
+            const jsonOutput = jsonOutputEditor.getValue();
+            if (jsonOutput) {
+                const data = JSON.parse(jsonOutput);
+                updateReportPreview(data);
+            }
+        } catch (e) {
+            console.error('Error updating report preview:', e);
+        }
+    }
+}
+
+// Add tab click event listeners
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize JSON input editor
+    jsonEditor = CodeMirror.fromTextArea(document.getElementById('json-input'), {
+        mode: { name: "javascript", json: true },
+        theme: "monokai",
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        extraKeys: {"Tab": "indentMore"},
+        lineWrapping: true
+    });
+
+    // Initialize JavaScript code editor
+    editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+        mode: "javascript",
+        theme: "monokai",
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        extraKeys: {"Tab": "indentMore"},
+        lineWrapping: true
+    });
+
+    // Initialize JSON output editor
+    jsonOutputEditor = CodeMirror.fromTextArea(document.getElementById('json-output'), {
+        mode: { name: "javascript", json: true },
+        theme: "monokai",
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        extraKeys: {"Tab": "indentMore"},
+        lineWrapping: true,
+        readOnly: true
+    });
+
+    // Initialize markdown editor with template
+    markdownEditor = CodeMirror.fromTextArea(document.getElementById('markdown-template'), {
+        mode: "markdown",
+        theme: "monokai",
+        lineNumbers: true,
+        matchBrackets: true,
+        lineWrapping: true,
+        viewportMargin: Infinity
+    });
+
+    // Function to refresh all editors
+    const refreshEditors = () => {
+        jsonEditor.refresh();
+        editor.refresh();
+        jsonOutputEditor.refresh();
+        markdownEditor.refresh();
+    };
+
+    try {
+        // Load markdown template from file
+        const templateResponse = await fetch('report-template.md');
+        if (!templateResponse.ok) {
+            throw new Error(`HTTP error! status: ${templateResponse.status}`);
+        }
+        const templateContent = await templateResponse.text();
+        markdownEditor.setValue(templateContent);
+
+        // Load default code from transformer.js
+        const response = await fetch('transformer.js');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const defaultCode = await response.text();
+        editor.setValue(defaultCode);
+
+        // Ensure all editors are properly refreshed
+        setTimeout(refreshEditors, 100);
+
+        // Auto-load JSON data and run code
+        try {
+            // Load JSON data
+            await loadJSONData();
+            
+            // Wait a brief moment for the editor to update
+            setTimeout(() => {
+                // Run the code
+                runJavaScript();
+                // Refresh editors again after running
+                refreshEditors();
+            }, 100);
+        } catch (error) {
+            console.error('Error during auto-load:', error);
+            document.getElementById('json-error').textContent = `Error auto-loading: ${error.message}`;
+        }
+
+        updateExecutionOutput('info', 'All editors initialized successfully');
+    } catch (error) {
+        updateExecutionOutput('error', `Error loading files: ${error.message}`);
+    }
+
+    // Add event listeners
+    markdownEditor.on('change', () => {
+        try {
+            const jsonOutput = jsonOutputEditor.getValue();
+            if (jsonOutput) {
+                const data = JSON.parse(jsonOutput);
+                updateReportPreview(data);
+            }
+        } catch (e) {
+            console.error('Error updating report preview:', e);
+        }
+    });
+
+    // Add tab click event listeners
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            switchTab(tab.getAttribute('data-tab'));
+        });
+    });
+
+    // Add window resize handler
+    window.addEventListener('resize', refreshEditors);
+
+    // Initialize ECharts instances
+    co2Chart = echarts.init(document.getElementById('co2Chart'));
+    diversityChart = echarts.init(document.getElementById('diversityChart'));
+});
 
 // AWS Configuration
 AWS.config.update({
@@ -22,11 +179,6 @@ AWS.config.update({
 });
 
 const s3 = new AWS.S3();
-
-async function initPyodide() {
-    pyodide = await loadPyodide();
-    console.log("Pyodide loaded!");
-}
 
 // Function to validate JSON
 function isValidJSON(str) {
@@ -279,27 +431,22 @@ function updateReportPreview(data) {
         return;
     }
 
-    console.log('Updating report preview with data:', data); // Debug log
-    
     // Get the template from the editor
     const template = markdownEditor.getValue();
-    console.log('Template:', template); // Debug log
     
     try {
         // First render the template
         const renderedTemplate = renderTemplate(template, data);
-        console.log('Rendered template:', renderedTemplate); // Debug log
         
-        // Then convert markdown to HTML with proper table support
+        // Then convert markdown to HTML
         const htmlContent = marked.parse(renderedTemplate, {
-            gfm: true, // Enable GitHub Flavored Markdown
-            breaks: true, // Enable line breaks
-            tables: true // Enable tables
+            gfm: true,
+            breaks: true,
+            tables: true
         });
-        console.log('Parsed HTML:', htmlContent); // Debug log
         
         // Update the preview
-        const previewElement = document.getElementById('report-preview');
+        const previewElement = document.querySelector('#report-preview .preview-content');
         if (previewElement) {
             previewElement.innerHTML = htmlContent;
             
@@ -308,23 +455,22 @@ function updateReportPreview(data) {
             for (const table of tables) {
                 if (!table.classList.contains('formatted')) {
                     table.classList.add('formatted');
-                    const rows = table.getElementsByTagName('tr');
-                    for (const row of rows) {
-                        const cells = row.children;
-                        for (const cell of cells) {
-                            if (cell.textContent.trim() === '') {
-                                cell.innerHTML = '&nbsp;';
-                            }
-                        }
-                    }
                 }
             }
-        } else {
-            console.error('Preview element not found');
+
+            // Handle images
+            const images = previewElement.getElementsByTagName('img');
+            for (const img of images) {
+                if (img.src.startsWith('data:image')) {
+                    img.style.display = 'block';
+                    img.style.maxWidth = '100%';
+                    img.style.margin = '10px auto';
+                }
+            }
         }
     } catch (error) {
         console.error('Error rendering template:', error);
-        const previewElement = document.getElementById('report-preview');
+        const previewElement = document.querySelector('#report-preview .preview-content');
         if (previewElement) {
             previewElement.innerHTML = `<div class="error">Error rendering template: ${error.message}</div>`;
         }
@@ -419,68 +565,95 @@ function renderTemplate(template, data) {
     }
 }
 
-// Function to run Python code
-async function runPython() {
-    if (!pyodide) {
-        console.log("Pyodide is still loading...");
-        return;
+// Function to update execution output
+function updateExecutionOutput(type, message) {
+    const outputArea = document.getElementById('execution-output');
+    const errorDiv = document.getElementById('execution-error');
+    const infoDiv = document.getElementById('execution-info');
+    const successDiv = document.getElementById('execution-success');
+
+    // Clear previous messages
+    errorDiv.textContent = '';
+    infoDiv.textContent = '';
+    successDiv.textContent = '';
+
+    // Add new message to appropriate div
+    switch(type) {
+        case 'error':
+            errorDiv.textContent = message;
+            break;
+        case 'info':
+            infoDiv.textContent = message;
+            break;
+        case 'success':
+            successDiv.textContent = message;
+            break;
     }
 
-    const code = editor.getValue();
-    const jsonInput = jsonEditor.getValue();
-    const jsonError = document.getElementById("json-error");
-    const executionError = document.getElementById("execution-error");
-    
-    // Clear previous errors
-    jsonError.textContent = "";
-    executionError.textContent = "";
-    
-    // Validate JSON
-    const jsonValidation = isValidJSON(jsonInput);
-    if (!jsonValidation.valid) {
-        jsonError.textContent = `Invalid JSON: ${jsonValidation.error}`;
-        return;
-    }
+    // Show output area if there's content
+    outputArea.style.display = message ? 'block' : 'none';
+}
 
+// Update the runJavaScript function to use the new output area
+function runJavaScript() {
     try {
-        // Redirect stdout to capture print statements
-        pyodide.runPython(`
-            import sys
-            import json
-            from io import StringIO
-            sys.stdout = StringIO()
-        `);
-
-        // Make the JSON string available to Python
-        pyodide.globals.set('input_json_str', jsonInput);
+        // Get the input JSON
+        const inputJsonStr = jsonEditor.getValue();
+        const { valid, error } = isValidJSON(inputJsonStr);
         
-        // Run the actual code
-        await pyodide.runPythonAsync(code);
+        if (!valid) {
+            updateExecutionOutput('error', 'Invalid JSON: ' + error);
+            return;
+        }
+
+        // Create a function from the code and pass the input JSON as a string
+        const code = editor.getValue();
+        const wrappedCode = `
+            (function() {
+                try {
+                    const inputJsonStr = ${JSON.stringify(inputJsonStr)};
+                    ${code}
+                    return result;
+                } catch(e) {
+                    throw new Error('Execution error: ' + e.message);
+                }
+            })
+        `;
+
+        // Execute the code
+        const result = eval(wrappedCode)();
         
-        // Get the captured output
-        const stdout = pyodide.runPython("sys.stdout.getvalue()");
+        // Update the output
+        if (result !== undefined) {
+            jsonOutputEditor.setValue(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
+            updateExecutionOutput('success', 'Code executed successfully');
+        }
         
-        // Reset stdout
-        pyodide.runPython("sys.stdout = sys.__stdout__");
+        // Try to parse the output for charts
+        try {
+            const outputData = JSON.parse(jsonOutputEditor.getValue());
+            updateCharts(outputData);
+            updateReportPreview(outputData);
+        } catch (e) {
+            updateExecutionOutput('error', 'Error updating visualizations: ' + e.message);
+        }
+    } catch (e) {
+        updateExecutionOutput('error', e.message);
+    }
+}
 
-        // Try to parse the output as JSON and format it
-        const formattedOutput = formatJSON(stdout);
-        jsonOutputEditor.setValue(formattedOutput);
-
-        // Parse the output data
-        const outputData = JSON.parse(stdout);
-        console.log('Parsed output data:', outputData); // Debug log
-
-        // Update charts with the new data
-        updateCharts(outputData);
-        
-        // Update report preview with the new data
-        updateReportPreview(outputData);
-
+// Update loadJSONData to use the new output area
+async function loadJSONData() {
+    try {
+        const response = await fetch('data.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        jsonEditor.setValue(JSON.stringify(data, null, 2));
+        updateExecutionOutput('success', 'JSON data loaded successfully');
     } catch (error) {
-        console.error('Error in runPython:', error); // Debug log
-        executionError.textContent = `Error: ${error.message}`;
-        jsonOutputEditor.setValue("");
+        updateExecutionOutput('error', `Error loading JSON data: ${error.message}`);
     }
 }
 
@@ -510,71 +683,8 @@ async function uploadToS3(chartId, filename) {
     }
 }
 
-// Initialize everything when the document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize CodeMirror editors
-    editor = CodeMirror.fromTextArea(document.getElementById("code"), {
-        mode: "python",
-        theme: "monokai",
-        lineNumbers: true,
-        indentUnit: 4,
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        extraKeys: {"Tab": "indentMore"}
-    });
-
-    jsonEditor = CodeMirror.fromTextArea(document.getElementById("json-input"), {
-        mode: { name: "javascript", json: true },
-        theme: "monokai",
-        lineNumbers: true,
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        extraKeys: {"Tab": "indentMore"}
-    });
-
-    jsonOutputEditor = CodeMirror.fromTextArea(document.getElementById("json-output"), {
-        mode: { name: "javascript", json: true },
-        theme: "monokai",
-        lineNumbers: true,
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        readOnly: true
-    });
-
-    markdownEditor = CodeMirror.fromTextArea(document.getElementById("markdown-template"), {
-        mode: "markdown",
-        theme: "monokai",
-        lineNumbers: true,
-        lineWrapping: true,
-        extraKeys: {"Tab": "indentMore"}
-    });
-
-    // Add change listener to markdown editor
-    markdownEditor.on('change', () => {
-        try {
-            const outputValue = jsonOutputEditor.getValue();
-            if (outputValue && outputValue.trim() !== '') {
-                const data = JSON.parse(outputValue);
-                updateReportPreview(data);
-            }
-        } catch (error) {
-            console.error('Error updating preview:', error);
-        }
-    });
-
-    // Initialize ECharts instances
-    co2Chart = echarts.init(document.getElementById('co2Chart'));
-    diversityChart = echarts.init(document.getElementById('diversityChart'));
-
-    // Initialize Pyodide
-    initPyodide().then(() => {
-        // Run the code once Pyodide is loaded to generate initial data
-        runPython().catch(console.error);
-    });
-
-    // Handle window resize
-    window.addEventListener('resize', function() {
-        co2Chart.resize();
-        diversityChart.resize();
-    });
-}); 
+// Handle window resize
+window.addEventListener('resize', function() {
+    co2Chart.resize();
+    diversityChart.resize();
+});

@@ -1,0 +1,59 @@
+{
+  "fund": {
+    "name": "Green Future Fund",
+    "assets": [
+      {
+        "name": "SolarTech Industries",
+        "data": {
+          "January": {
+            "CO2_emission": 120.5,
+            "Board_Diversity": {
+              "female_percentage": 30,
+              "minority_percentage": 15
+            }
+          },
+          "February": {
+            "CO2_emission": 118.3,
+            "Board_Diversity": {
+              "female_percentage": 30,
+              "minority_percentage": 15
+            }
+          },
+          "March": {
+            "CO2_emission": 115.8,
+            "Board_Diversity": {
+              "female_percentage": 35,
+              "minority_percentage": 18
+            }
+          }
+        }
+      },
+      {
+        "name": "WindCore Solutions",
+        "data": {
+          "January": {
+            "CO2_emission": 98.7,
+            "Board_Diversity": {
+              "female_percentage": 40,
+              "minority_percentage": 20
+            }
+          },
+          "February": {
+            "CO2_emission": 95.1,
+            "Board_Diversity": {
+              "female_percentage": 42,
+              "minority_percentage": 21
+            }
+          },
+          "March": {
+            "CO2_emission": 92.4,
+            "Board_Diversity": {
+              "female_percentage": 43,
+              "minority_percentage": 22
+            }
+          }
+        }
+      }
+    ]
+  }
+} 
