@@ -249,85 +249,94 @@ function closeConfigModal() {
 
 // Function to export chart configuration
 function exportChartConfig(chartId) {
-    currentChartId = chartId;
-    let chart;
-    switch(chartId) {
-        case 'environmentalChart':
-            chart = environmentalChart;
-            break;
-        case 'socialChart':
-            chart = socialChart;
-            break;
-        case 'radarChart':
-            chart = radarChart;
-            break;
-        case 'gaugeChart':
-            chart = gaugeChart;
-            break;
-        case 'timelineChart':
-            chart = timelineChart;
-            break;
+    const chart = getChartInstance(chartId);
+    if (!chart) {
+        console.error(`Chart ${chartId} not found`);
+        return;
     }
+
+    const config = chart.getOption();
+    const configStr = JSON.stringify(config, null, 2);
     
-    if (chart) {
-        const config = chart.getOption();
-        showConfigModal(`Export ${chartId} Configuration`);
-        configEditor.setValue(JSON.stringify(config, null, 2));
-    }
+    // Create and trigger download
+    const blob = new Blob([configStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${chartId}-config.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 // Function to import chart configuration
 function importChartConfig(chartId) {
-    currentChartId = chartId;
-    showConfigModal(`Import ${chartId} Configuration`);
-    configEditor.setValue('{\n  // Paste your ECharts configuration here\n}');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const config = JSON.parse(e.target.result);
+                showConfigModal(chartId, config);
+            } catch (error) {
+                console.error('Error parsing configuration file:', error);
+                alert('Invalid configuration file');
+            }
+        };
+        reader.readAsText(file);
+    };
+    
+    input.click();
 }
 
 // Function to apply imported configuration
 function applyConfig() {
+    const modal = document.getElementById('configModal');
+    const chartId = modal.dataset.chartId;
+    const textarea = modal.querySelector('textarea');
+    
     try {
-        const config = JSON.parse(configEditor.getValue());
-        const chart = currentChartId === 'environmentalChart' ? environmentalChart : currentChartId === 'socialChart' ? socialChart : currentChartId === 'radarChart' ? radarChart : currentChartId === 'gaugeChart' ? gaugeChart : timelineChart;
-        
-        // Preserve the data series while applying new configuration
-        const currentData = chart.getOption().series.map(s => ({
-            name: s.name,
-            data: s.data
-        }));
-
-        // Apply new configuration
-        chart.setOption(config, true);
-
-        // Restore data series if needed
-        if (config.series && Array.isArray(config.series)) {
-            config.series.forEach((s, i) => {
-                if (currentData[i]) {
-                    s.data = currentData[i].data;
-                }
-            });
-            chart.setOption({ series: config.series });
+        const config = JSON.parse(textarea.value);
+        const chart = getChartInstance(chartId);
+        if (chart) {
+            chart.setOption(config);
+            closeConfigModal();
+        } else {
+            throw new Error(`Chart ${chartId} not found`);
         }
-
-        closeConfigModal();
     } catch (error) {
-        alert('Invalid configuration: ' + error.message);
+        console.error('Error applying configuration:', error);
+        alert('Invalid configuration format');
     }
 }
 
 // Function to download chart as image
 function downloadChart(chartId, filename) {
-    const chart = chartId === 'environmentalChart' ? environmentalChart : chartId === 'socialChart' ? socialChart : chartId === 'radarChart' ? radarChart : chartId === 'gaugeChart' ? gaugeChart : timelineChart;
+    const chart = getChartInstance(chartId);
+    if (!chart) {
+        console.error(`Chart ${chartId} not found`);
+        return;
+    }
+
     const url = chart.getDataURL({
+        type: 'png',
         pixelRatio: 2,
         backgroundColor: '#fff'
     });
-    
-    const link = document.createElement('a');
-    link.download = `${filename}.png`;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename || chartId}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 }
 
 // Add window resize handler
@@ -1009,4 +1018,51 @@ function createTimelineOption(data) {
             }
         ])
     };
+}
+
+// Event handlers for chart configuration buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners for all chart config buttons
+    document.querySelectorAll('.chart-config-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const action = this.dataset.action;
+            const chartId = this.dataset.chart;
+            const filename = this.dataset.filename;
+
+            switch(action) {
+                case 'export':
+                    exportChartConfig(chartId);
+                    break;
+                case 'import':
+                    importChartConfig(chartId);
+                    break;
+                case 'download':
+                    downloadChart(chartId, filename);
+                    break;
+            }
+        });
+    });
+
+    // Modal close button
+    document.querySelector('.close-modal').addEventListener('click', closeConfigModal);
+
+    // Apply config button
+    document.querySelector('.apply-config').addEventListener('click', applyConfig);
+});
+
+function getChartInstance(chartId) {
+    switch(chartId) {
+        case 'environmentalChart':
+            return environmentalChart;
+        case 'socialChart':
+            return socialChart;
+        case 'radarChart':
+            return radarChart;
+        case 'gaugeChart':
+            return gaugeChart;
+        case 'timelineChart':
+            return timelineChart;
+        default:
+            return null;
+    }
 }
