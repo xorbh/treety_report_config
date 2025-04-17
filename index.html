@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
     
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -172,6 +175,106 @@
             height: 400px;
             margin-top: 20px;
         }
+
+        .report-container {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .report-editors {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .report-preview {
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 300px;
+            overflow-y: auto;
+            color: #333;
+        }
+
+        .report-preview img {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+
+        .report-preview h1 {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        .report-preview h2 {
+            font-size: 20px;
+            margin: 16px 0;
+            color: #444;
+        }
+
+        .report-preview h3 {
+            font-size: 18px;
+            margin: 14px 0;
+            color: #555;
+        }
+
+        .report-preview h4 {
+            font-size: 16px;
+            margin: 12px 0;
+            color: #666;
+        }
+
+        .report-preview p {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+
+        .report-preview ul, .report-preview ol {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .report-preview li {
+            margin: 4px 0;
+        }
+
+        .report-preview table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+            background-color: white;
+        }
+
+        .report-preview th, .report-preview td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .report-preview th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .report-preview tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .report-preview .error {
+            color: #ff4444;
+            padding: 10px;
+            border: 1px solid #ffdddd;
+            border-radius: 4px;
+            background-color: #fff8f8;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -330,6 +433,43 @@ print(json.dumps(result, indent=2))</textarea>
                 <a href="https://echarts.apache.org/en/studio.html" target="_blank" class="studio-link">Open in ECharts Studio</a>
             </div>
         </div>
+        <div class="report-container">
+            <h2>Report Template</h2>
+            <div class="report-editors">
+                <div class="editor-container">
+                    <div class="editor-label">Markdown Template</div>
+                    <textarea id="markdown-template"># {{ fund_name }} - ESG Analysis Report
+## Analysis Period: {{ analysis_period }}
+
+### CO2 Emissions Analysis
+![CO2 Emissions Chart]({{ chart_images.co2_emissions }})
+
+#### Key Findings
+{% for asset in assets_analysis %}
+- **{{ asset.name }}**
+  - Average CO2 Emissions: {{ asset.time_series.metrics.CO2_emission.stats.average }}
+  - Trend: {{ asset.time_series.metrics.CO2_emission.stats.trend }}
+{% endfor %}
+
+### Board Diversity Analysis
+![Diversity Chart]({{ chart_images.diversity }})
+
+#### Key Metrics
+
+| Company | Female % (Avg) | Minority % (Avg) | Trend (Female) | Trend (Minority) |
+|---------|---------------|-----------------|----------------|------------------|
+{% for asset in assets_analysis %}| {{ asset.name }} | {{ asset.time_series.metrics.board_diversity.female_percentage.stats.average }}% | {{ asset.time_series.metrics.board_diversity.minority_percentage.stats.average }}% | {{ asset.time_series.metrics.board_diversity.female_percentage.stats.trend }}% | {{ asset.time_series.metrics.board_diversity.minority_percentage.stats.trend }}% |
+{% endfor %}
+
+### Summary
+This report provides an analysis of ESG metrics for {{ fund_name }} during {{ analysis_period }}. The data shows trends in both environmental impact (CO2 emissions) and social governance (board diversity).</textarea>
+                </div>
+                <div class="editor-container">
+                    <div class="editor-label">Report Preview</div>
+                    <div id="report-preview" class="report-preview"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Configuration Modal -->
@@ -346,6 +486,7 @@ print(json.dumps(result, indent=2))</textarea>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/markdown/markdown.min.js"></script>
     
     <!-- Apache ECharts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>

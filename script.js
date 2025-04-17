@@ -3,6 +3,7 @@ let editor = null;
 let jsonEditor = null;
 let jsonOutputEditor = null;
 let configEditor = null;
+let markdownEditor = null;
 let currentChartId = null;
 
 // Initialize ECharts instances
@@ -258,20 +259,164 @@ function updateCharts(data) {
     co2Chart.setOption(co2Option);
     diversityChart.setOption(diversityOption);
 
-    // Store the current data in the window object for ECharts Studio access
-    window.chartData = {
-        timePoints: timePoints,
-        assets: assets
-    };
-
-    // Add chart images to output
-    const outputData = JSON.parse(jsonOutputEditor.getValue());
-    outputData.chart_images = {
+    // Add chart images to the data object directly
+    data.chart_images = {
         co2_emissions: co2Chart.getDataURL({ pixelRatio: 2, backgroundColor: '#fff' }),
         diversity: diversityChart.getDataURL({ pixelRatio: 2, backgroundColor: '#fff' })
     };
     
-    jsonOutputEditor.setValue(JSON.stringify(outputData, null, 2));
+    // Update the output with the modified data including chart images
+    jsonOutputEditor.setValue(JSON.stringify(data, null, 2));
+
+    // Update the report preview with the complete data
+    updateReportPreview(data);
+}
+
+// Function to update the report preview
+function updateReportPreview(data) {
+    if (!data) {
+        console.error('No data provided to updateReportPreview');
+        return;
+    }
+
+    console.log('Updating report preview with data:', data); // Debug log
+    
+    // Get the template from the editor
+    const template = markdownEditor.getValue();
+    console.log('Template:', template); // Debug log
+    
+    try {
+        // First render the template
+        const renderedTemplate = renderTemplate(template, data);
+        console.log('Rendered template:', renderedTemplate); // Debug log
+        
+        // Then convert markdown to HTML with proper table support
+        const htmlContent = marked.parse(renderedTemplate, {
+            gfm: true, // Enable GitHub Flavored Markdown
+            breaks: true, // Enable line breaks
+            tables: true // Enable tables
+        });
+        console.log('Parsed HTML:', htmlContent); // Debug log
+        
+        // Update the preview
+        const previewElement = document.getElementById('report-preview');
+        if (previewElement) {
+            previewElement.innerHTML = htmlContent;
+            
+            // Fix table formatting
+            const tables = previewElement.getElementsByTagName('table');
+            for (const table of tables) {
+                if (!table.classList.contains('formatted')) {
+                    table.classList.add('formatted');
+                    const rows = table.getElementsByTagName('tr');
+                    for (const row of rows) {
+                        const cells = row.children;
+                        for (const cell of cells) {
+                            if (cell.textContent.trim() === '') {
+                                cell.innerHTML = '&nbsp;';
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            console.error('Preview element not found');
+        }
+    } catch (error) {
+        console.error('Error rendering template:', error);
+        const previewElement = document.getElementById('report-preview');
+        if (previewElement) {
+            previewElement.innerHTML = `<div class="error">Error rendering template: ${error.message}</div>`;
+        }
+    }
+}
+
+// Function to render the markdown template with data
+function renderTemplate(template, data) {
+    if (!template || !data) {
+        console.error('Missing template or data:', { template: !!template, data: !!data });
+        return '';
+    }
+
+    console.log('Rendering template with data:', data); // Debug log
+    
+    try {
+        // Simple template engine
+        let rendered = template.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, p1) => {
+            const path = p1.trim();
+            const value = path.split('.').reduce((obj, key) => obj?.[key], data);
+            console.log(`Replacing ${match} with:`, value); // Debug log
+            return value !== undefined ? value : match;
+        });
+
+        // Handle for loops
+        rendered = rendered.replace(/\{%\s*for\s+(\w+)\s+in\s+([^%]+)\s*%\}([\s\S]+?)\{%\s*endfor\s*%\}/g, (match, varName, collection, content) => {
+            const collectionPath = collection.trim();
+            const items = collectionPath.split('.').reduce((obj, key) => obj?.[key], data);
+            console.log(`Processing for loop - ${varName} in:`, items); // Debug log
+            
+            if (!Array.isArray(items)) {
+                console.error(`Collection ${collectionPath} is not an array:`, items);
+                return '';
+            }
+            
+            return items.map(item => {
+                const itemData = { ...data, [varName]: item };
+                return renderTemplate(content, itemData);
+            }).join('\n');
+        });
+
+        // Handle if conditions with expressions
+        rendered = rendered.replace(/\{%\s*if\s+([^%]+)\s*%\}([\s\S]+?)\{%\s*endif\s*%\}/g, (match, condition, content) => {
+            try {
+                // Create a function that evaluates the condition with the data context
+                const conditionFn = new Function('data', `
+                    with (data) {
+                        try {
+                            return ${condition};
+                        } catch (e) {
+                            return false;
+                        }
+                    }
+                `);
+                const result = conditionFn(data);
+                console.log(`Evaluating condition ${condition}:`, result); // Debug log
+                return result ? content : '';
+            } catch (error) {
+                console.error('Error in if condition:', error);
+                return '';
+            }
+        });
+
+        // Handle ternary expressions
+        rendered = rendered.replace(/\{\{\s*([^}]+\?[^}]+:[^}]+)\s*\}\}/g, (match, expr) => {
+            try {
+                const [condition, values] = expr.split('?').map(s => s.trim());
+                const [trueValue, falseValue] = values.split(':').map(s => s.trim());
+                
+                // Create a function that evaluates the condition with the data context
+                const conditionFn = new Function('data', `
+                    with (data) {
+                        try {
+                            return ${condition};
+                        } catch (e) {
+                            return false;
+                        }
+                    }
+                `);
+                const result = conditionFn(data);
+                return result ? trueValue : falseValue;
+            } catch (error) {
+                console.error('Error in ternary expression:', error);
+                return match;
+            }
+        });
+
+        return rendered;
+    } catch (error) {
+        console.error('Error in template rendering:', error);
+        return `Error: ${error.message}`;
+    }
 }
 
 // Function to run Python code
@@ -322,11 +467,18 @@ async function runPython() {
         const formattedOutput = formatJSON(stdout);
         jsonOutputEditor.setValue(formattedOutput);
 
-        // Update charts with the new data
+        // Parse the output data
         const outputData = JSON.parse(stdout);
+        console.log('Parsed output data:', outputData); // Debug log
+
+        // Update charts with the new data
         updateCharts(outputData);
+        
+        // Update report preview with the new data
+        updateReportPreview(outputData);
 
     } catch (error) {
+        console.error('Error in runPython:', error); // Debug log
         executionError.textContent = `Error: ${error.message}`;
         jsonOutputEditor.setValue("");
     }
@@ -389,12 +541,36 @@ document.addEventListener('DOMContentLoaded', function() {
         readOnly: true
     });
 
+    markdownEditor = CodeMirror.fromTextArea(document.getElementById("markdown-template"), {
+        mode: "markdown",
+        theme: "monokai",
+        lineNumbers: true,
+        lineWrapping: true,
+        extraKeys: {"Tab": "indentMore"}
+    });
+
+    // Add change listener to markdown editor
+    markdownEditor.on('change', () => {
+        try {
+            const outputValue = jsonOutputEditor.getValue();
+            if (outputValue && outputValue.trim() !== '') {
+                const data = JSON.parse(outputValue);
+                updateReportPreview(data);
+            }
+        } catch (error) {
+            console.error('Error updating preview:', error);
+        }
+    });
+
     // Initialize ECharts instances
     co2Chart = echarts.init(document.getElementById('co2Chart'));
     diversityChart = echarts.init(document.getElementById('diversityChart'));
 
     // Initialize Pyodide
-    initPyodide();
+    initPyodide().then(() => {
+        // Run the code once Pyodide is loaded to generate initial data
+        runPython().catch(console.error);
+    });
 
     // Handle window resize
     window.addEventListener('resize', function() {
