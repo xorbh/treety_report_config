@@ -112,6 +112,21 @@ function initializeEditors() {
         lineWrapping: true,
         viewportMargin: Infinity
     });
+
+    // Add change handler for markdown editor
+    markdownEditor.on('change', () => {
+        if (document.getElementById('report').classList.contains('active')) {
+            try {
+                const jsonOutput = jsonOutputEditor.getValue();
+                if (jsonOutput) {
+                    const data = JSON.parse(jsonOutput);
+                    updateReportPreview(data);
+                }
+        } catch (e) {
+                console.error('Error updating report preview on template change:', e);
+            }
+        }
+    });
 }
 
 // Function to initialize charts
@@ -164,7 +179,17 @@ async function loadInitialData() {
         const templateResponse = await fetch('report-template.md');
         if (templateResponse.ok) {
             const templateContent = await templateResponse.text();
+            console.log('Loaded template content:', templateContent.substring(0, 500) + '...');
             markdownEditor.setValue(templateContent);
+        } else {
+            console.error('Failed to load template:', templateResponse.status, templateResponse.statusText);
+            // Load the template from the file directly as fallback
+            const defaultTemplate = `# {{ fund_name }} ESG Performance Report
+## Analysis Period: {{ analysis_period }}
+
+## Executive Summary
+This report provides a comprehensive analysis of Environmental, Social, and Governance (ESG) metrics for {{ fund_name }} during {{ analysis_period }}...`;
+            markdownEditor.setValue(defaultTemplate);
         }
 
         // Load default code
@@ -190,6 +215,7 @@ async function loadInitialData() {
 
         updateExecutionOutput('info', 'All editors and charts initialized successfully');
     } catch (error) {
+        console.error('Error loading initial data:', error);
         updateExecutionOutput('error', `Error loading initial data: ${error.message}`);
     }
 }
@@ -330,7 +356,7 @@ function downloadChart(chartId, filename) {
         pixelRatio: 2,
         backgroundColor: '#fff'
     });
-
+    
     const a = document.createElement('a');
     a.href = url;
     a.download = `${filename || chartId}.png`;
@@ -362,14 +388,48 @@ function updateCharts(data) {
         if (gaugeChart) gaugeChart.setOption(gaugeOption);
         if (timelineChart) timelineChart.setOption(timelineOption);
 
-        // Add chart images to the data object with null checks
-        data.chart_images = {
-            environmental: environmentalChart ? environmentalChart.getDataURL({ pixelRatio: 2, backgroundColor: '#fff' }) : null,
-            social: socialChart ? socialChart.getDataURL({ pixelRatio: 2, backgroundColor: '#fff' }) : null,
-            radar: radarChart ? radarChart.getDataURL({ pixelRatio: 2, backgroundColor: '#fff' }) : null,
-            gauge: gaugeChart ? gaugeChart.getDataURL({ pixelRatio: 2, backgroundColor: '#fff' }) : null,
-            timeline: timelineChart ? timelineChart.getDataURL({ pixelRatio: 2, backgroundColor: '#fff' }) : null
+        // Add chart images to the data object with null checks and proper base64 encoding
+        data.chart_images = {};
+        
+        // Helper function to get chart image as base64
+        const getChartBase64 = (chart) => {
+            if (!chart) return null;
+            try {
+                // Get the base64 data directly
+                return chart.getDataURL({
+                    type: 'png',
+                    pixelRatio: 2,
+                    backgroundColor: '#fff'
+                });
+            } catch (e) {
+                console.error('Error getting chart base64:', e);
+                return null;
+            }
         };
+
+        // Get base64 data for each chart
+        data.chart_images.environmental = getChartBase64(environmentalChart);
+        data.chart_images.social = getChartBase64(socialChart);
+        data.chart_images.radar = getChartBase64(radarChart);
+        data.chart_images.gauge = getChartBase64(gaugeChart);
+        data.chart_images.timeline = getChartBase64(timelineChart);
+
+        // Debug log the chart images
+        console.log('Chart images generated:', Object.keys(data.chart_images).reduce((acc, key) => {
+            acc[key] = data.chart_images[key] ? 'generated (length: ' + data.chart_images[key].length + ')' : 'missing';
+            return acc;
+        }, {}));
+
+        // Ensure required fields exist
+        data.fund_name = data.fund_name || 'Untitled Fund';
+        data.analysis_period = data.analysis_period || 'Not Specified';
+        data.report_date = data.report_date || new Date().toLocaleDateString();
+        data.report_version = data.report_version || '1.0';
+
+        // Ensure assets_analysis exists
+        if (!data.assets_analysis) {
+            data.assets_analysis = [];
+        }
 
         return data;
     } catch (error) {
@@ -426,14 +486,82 @@ function updateReportPreview(data) {
         return;
     }
 
+    // Debug logging for chart images
+    console.log('Chart images before processing:', Object.keys(data.chart_images || {}).reduce((acc, key) => {
+        acc[key] = data.chart_images[key] ? 'present (length: ' + data.chart_images[key].length + ')' : 'missing';
+        return acc;
+    }, {}));
+    
     // Get the template from the editor
-    const template = markdownEditor.getValue();
+    const templateText = markdownEditor.getValue();
+    if (!templateText) {
+        console.error('No template content found');
+        return;
+    }
     
     try {
-        // First render the template
-        const renderedTemplate = renderTemplate(template, data);
+        // Create a display copy of the data without the full base64 strings
+        const displayData = JSON.parse(JSON.stringify(data));
+        if (displayData.chart_images) {
+            Object.keys(displayData.chart_images).forEach(key => {
+                if (displayData.chart_images[key]) {
+                    displayData.chart_images[key] = `[base64 image data: ${displayData.chart_images[key].length} chars]`;
+                }
+            });
+        }
+
+        // Update or create the JSON display with the formatted display copy
+        let jsonDisplay = document.querySelector('#template-data-display');
+        if (!jsonDisplay) {
+            jsonDisplay = document.createElement('pre');
+            jsonDisplay.id = 'template-data-display';
+            jsonDisplay.style.cssText = `
+                background: #f5f5f5;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 10px;
+                margin-bottom: 10px;
+                overflow: auto;
+                font-family: monospace;
+                font-size: 12px;
+                max-height: 200px;
+            `;
+            const editorContainer = document.querySelector('.editor-container');
+            if (editorContainer) {
+                editorContainer.insertBefore(jsonDisplay, editorContainer.firstChild);
+            }
+        }
+        jsonDisplay.textContent = JSON.stringify(displayData, null, 2);
+
+        // Compile the template with Handlebars using the original data
+        const template = Handlebars.compile(templateText);
         
-        // Then convert markdown to HTML
+        // Register helpers
+        Handlebars.registerHelper('arrayIndex', function(array, index) {
+            return array[index];
+        });
+        
+        Handlebars.registerHelper('math', function(lvalue, operator, rvalue) {
+            lvalue = parseFloat(lvalue);
+            rvalue = parseFloat(rvalue);
+            return {
+                '+': lvalue + rvalue,
+                '-': lvalue - rvalue,
+                '*': lvalue * rvalue,
+                '/': lvalue / rvalue,
+                '%': lvalue % rvalue
+            }[operator];
+        });
+
+        // Ensure chart_images exists in the original data
+        if (!data.chart_images) {
+            data.chart_images = {};
+        }
+
+        // Render the template with the original data (containing full base64 images)
+        const renderedTemplate = template(data);
+        
+        // Convert markdown to HTML
         const htmlContent = marked.parse(renderedTemplate, {
             gfm: true,
             breaks: true,
@@ -453,15 +581,39 @@ function updateReportPreview(data) {
                 }
             }
 
-            // Handle images
+            // Handle images using the original data's base64 images
             const images = previewElement.getElementsByTagName('img');
             for (const img of images) {
-                if (img.src.startsWith('data:image')) {
-                    img.style.display = 'block';
-                    img.style.maxWidth = '100%';
-                    img.style.margin = '10px auto';
+                // Set default styling
+                img.style.display = 'block';
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.margin = '20px auto';
+                img.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                img.style.borderRadius = '4px';
+                
+                // If the image src is a chart image reference, replace it with the base64 data
+                const chartKey = img.src.split('/').pop(); // Get the last part of the path
+                if (data.chart_images[chartKey]) {
+                    img.src = data.chart_images[chartKey];
                 }
+                
+                // Add load event listener
+                img.onload = () => {
+                    console.log('Image loaded successfully:', img.src.substring(0, 50) + '...');
+                    img.style.border = '1px solid #ddd';
+                };
+                
+                // Add error event listener
+                img.onerror = (e) => {
+                    console.error('Image failed to load:', e);
+                    img.style.border = '1px solid #ff0000';
+                    img.style.padding = '20px';
+                    img.style.background = '#fff0f0';
+                };
             }
+        } else {
+            console.error('Preview element not found');
         }
     } catch (error) {
         console.error('Error rendering template:', error);
@@ -469,94 +621,6 @@ function updateReportPreview(data) {
         if (previewElement) {
             previewElement.innerHTML = `<div class="error">Error rendering template: ${error.message}</div>`;
         }
-    }
-}
-
-// Function to render the markdown template with data
-function renderTemplate(template, data) {
-    if (!template || !data) {
-        console.error('Missing template or data:', { template: !!template, data: !!data });
-        return '';
-    }
-
-    console.log('Rendering template with data:', data); // Debug log
-    
-    try {
-        // Simple template engine
-        let rendered = template.replace(/\{\{\s*([^}]+)\s*\}\}/g, (match, p1) => {
-            const path = p1.trim();
-            const value = path.split('.').reduce((obj, key) => obj?.[key], data);
-            console.log(`Replacing ${match} with:`, value); // Debug log
-            return value !== undefined ? value : match;
-        });
-
-        // Handle for loops
-        rendered = rendered.replace(/\{%\s*for\s+(\w+)\s+in\s+([^%]+)\s*%\}([\s\S]+?)\{%\s*endfor\s*%\}/g, (match, varName, collection, content) => {
-            const collectionPath = collection.trim();
-            const items = collectionPath.split('.').reduce((obj, key) => obj?.[key], data);
-            console.log(`Processing for loop - ${varName} in:`, items); // Debug log
-            
-            if (!Array.isArray(items)) {
-                console.error(`Collection ${collectionPath} is not an array:`, items);
-                return '';
-            }
-            
-            return items.map(item => {
-                const itemData = { ...data, [varName]: item };
-                return renderTemplate(content, itemData);
-            }).join('\n');
-        });
-
-        // Handle if conditions with expressions
-        rendered = rendered.replace(/\{%\s*if\s+([^%]+)\s*%\}([\s\S]+?)\{%\s*endif\s*%\}/g, (match, condition, content) => {
-            try {
-                // Create a function that evaluates the condition with the data context
-                const conditionFn = new Function('data', `
-                    with (data) {
-                        try {
-                            return ${condition};
-                        } catch (e) {
-                            return false;
-                        }
-                    }
-                `);
-                const result = conditionFn(data);
-                console.log(`Evaluating condition ${condition}:`, result); // Debug log
-                return result ? content : '';
-            } catch (error) {
-                console.error('Error in if condition:', error);
-                return '';
-            }
-        });
-
-        // Handle ternary expressions
-        rendered = rendered.replace(/\{\{\s*([^}]+\?[^}]+:[^}]+)\s*\}\}/g, (match, expr) => {
-            try {
-                const [condition, values] = expr.split('?').map(s => s.trim());
-                const [trueValue, falseValue] = values.split(':').map(s => s.trim());
-                
-                // Create a function that evaluates the condition with the data context
-                const conditionFn = new Function('data', `
-                    with (data) {
-                        try {
-                            return ${condition};
-                        } catch (e) {
-                            return false;
-                        }
-                    }
-                `);
-                const result = conditionFn(data);
-                return result ? trueValue : falseValue;
-            } catch (error) {
-                console.error('Error in ternary expression:', error);
-                return match;
-            }
-        });
-
-        return rendered;
-    } catch (error) {
-        console.error('Error in template rendering:', error);
-        return `Error: ${error.message}`;
     }
 }
 
@@ -620,17 +684,28 @@ function runJavaScript() {
         
         // Update the output
         if (result !== undefined) {
-            jsonOutputEditor.setValue(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
-            updateExecutionOutput('success', 'Code executed successfully');
-        }
-        
-        // Try to parse the output for charts
-        try {
-            const outputData = JSON.parse(jsonOutputEditor.getValue());
-            updateCharts(outputData);
+            // Parse the result if it's a string
+            let outputData = typeof result === 'string' ? JSON.parse(result) : result;
+            
+            // Update charts and get the processed data with chart images
+            try {
+                console.log('Processing output data for charts...');
+                outputData = updateCharts(outputData);
+                console.log('Chart images added:', Object.keys(outputData.chart_images || {}));
+                
+                // Update the JSON output editor with the complete data including chart images
+                const formattedResult = JSON.stringify(outputData, null, 2);
+                jsonOutputEditor.setValue(formattedResult);
+                updateExecutionOutput('success', 'Code executed successfully');
+                
+                // Update the report preview if we're on the report tab
+                if (document.getElementById('report').classList.contains('active')) {
             updateReportPreview(outputData);
+                }
         } catch (e) {
-            updateExecutionOutput('error', 'Error updating visualizations: ' + e.message);
+                console.error('Error processing output data:', e);
+                updateExecutionOutput('error', 'Error updating visualizations: ' + e.message);
+            }
         }
     } catch (e) {
         updateExecutionOutput('error', e.message);
