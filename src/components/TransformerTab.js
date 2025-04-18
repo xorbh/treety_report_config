@@ -11,16 +11,36 @@ const TransformerTab = () => {
   const [info, setInfo] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Load initial transformer code
+  // Load initial transformer code and JSON data
   useEffect(() => {
+    // Load transformer code
     fetch('/transformer.js')
       .then(response => response.text())
-      .then(text => {
-        setCode(text);
+      .then(transformerCode => {
+        setCode(transformerCode);
         setInfo('Transformer code loaded successfully');
+        
+        // After transformer code is loaded, load JSON data
+        return fetch('/data.json').then(response => response.json())
+          .then(data => {
+            const jsonStr = JSON.stringify(data, null, 2);
+            setJsonInput(jsonStr);
+            setInfo('Sample JSON data loaded');
+            
+            // Run the transformation after both code and data are loaded
+            try {
+              // eslint-disable-next-line no-new-func
+              const transformFn = new Function('inputJsonStr', transformerCode);
+              const result = transformFn(JSON.stringify(data));
+              setJsonOutput(JSON.stringify(result, null, 2));
+              setSuccess('Code executed successfully');
+            } catch (execError) {
+              setError('Error executing code: ' + execError.message);
+            }
+          });
       })
       .catch(err => {
-        setError('Failed to load transformer code: ' + err.message);
+        setError('Failed to load data: ' + err.message);
         // Set fallback code
         setCode('// Transform your JSON data here\n// Example:\n// return input.map(item => ({ ...item, processed: true }));');
       });
