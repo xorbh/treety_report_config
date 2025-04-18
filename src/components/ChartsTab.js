@@ -8,6 +8,18 @@ import './ChartsTab.css';
 const ChartsTab = ({ jsonOutput, setJsonOutput }) => {
   const [data, setData] = useState(null);
   const [configModal, setConfigModal] = useState({ isOpen: false, chartId: null, config: '' });
+  const [isJsonVisible, setIsJsonVisible] = useState(false);
+  const [chartRows, setChartRows] = useState([
+    { id: 'environmentalChart', title: 'Environmental Metrics' },
+    { id: 'socialChart', title: 'Social Metrics' },
+    { id: 'radarChart', title: 'ESG Overview' },
+    { id: 'gaugeChart', title: 'Governance Status' },
+    { id: 'timelineChart', title: 'Incidents Timeline' }
+  ]);
+
+  // Add data paths state to track the data source for each chart
+  const [chartDataPaths, setChartDataPaths] = useState({});
+
   const [chartConfigs, setChartConfigs] = useState({
     environmentalChart: null,
     socialChart: null,
@@ -24,6 +36,93 @@ const ChartsTab = ({ jsonOutput, setJsonOutput }) => {
     gaugeChart: null,
     timelineChart: null
   });
+
+  // Function to safely get nested object value using path string
+  const getValueByPath = (obj, path) => {
+    try {
+      return path.split('.').reduce((acc, part) => {
+        // Handle array indexing
+        if (part.includes('[') && part.includes(']')) {
+          const arrayPart = part.split('[');
+          const arrayName = arrayPart[0];
+          const index = parseInt(arrayPart[1].replace(']', ''));
+          return acc[arrayName][index];
+        }
+        return acc[part];
+      }, obj);
+    } catch (error) {
+      console.error('Invalid data path:', path);
+      return null;
+    }
+  };
+
+  // Function to update chart data based on data path
+  const updateChartData = (chartId, dataPath) => {
+    try {
+      // Get the data using the path
+      const chartData = getValueByPath(jsonOutput, dataPath);
+      
+      if (!chartData) {
+        console.error('No data found at path:', dataPath);
+        return;
+      }
+
+      // Update the chart configuration with the new data
+      setChartConfigs(prev => ({
+        ...prev,
+        [chartId]: {
+          ...prev[chartId],
+          series: [{
+            ...prev[chartId].series[0],
+            data: Array.isArray(chartData) ? chartData : [chartData]
+          }]
+        }
+      }));
+
+      // Save the data path
+      setChartDataPaths(prev => ({
+        ...prev,
+        [chartId]: dataPath
+      }));
+    } catch (error) {
+      console.error('Error updating chart data:', error);
+    }
+  };
+
+  // Create default chart configuration
+  const createDefaultChartConfig = () => ({
+    title: { text: 'New Chart' },
+    tooltip: { trigger: 'axis' },
+    xAxis: {
+      type: 'category',
+      data: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+    },
+    yAxis: {
+      type: 'value'
+    },
+    series: [{
+      name: 'Data',
+      type: 'line',
+      data: [10, 15, 8, 20, 12, 18]
+    }]
+  });
+
+  const addNewChart = () => {
+    const newChartId = `chart_${Date.now()}`;
+    const newChartTitle = 'New Chart';
+    
+    // Update chart rows - add to the beginning of the array
+    setChartRows(prev => [{ id: newChartId, title: newChartTitle }, ...prev]);
+    
+    // Update chart configs
+    setChartConfigs(prev => ({
+      ...prev,
+      [newChartId]: createDefaultChartConfig()
+    }));
+    
+    // Update chart refs
+    chartRefs.current[newChartId] = null;
+  };
 
   // Create stable ref callbacks for each chart
   const setChartRef = useCallback((chartId) => (ref) => {
@@ -188,13 +287,14 @@ const ChartsTab = ({ jsonOutput, setJsonOutput }) => {
       ]
     };
 
-    setChartConfigs({
+    setChartConfigs(prev => ({
+      ...prev,
       environmentalChart: environmentalConfig,
       socialChart: socialConfig,
       radarChart: radarConfig,
       gaugeChart: gaugeConfig,
       timelineChart: timelineConfig
-    });
+    }));
   };
 
   const handleConfigAction = (action, chartId) => {
@@ -253,26 +353,53 @@ const ChartsTab = ({ jsonOutput, setJsonOutput }) => {
     }
   };
 
-  if (!data || !chartConfigs.environmentalChart) {
+  if (!data) {
     return <div>Loading charts...</div>;
   }
 
-  const chartRows = [
-    { id: 'environmentalChart', title: 'Environmental Metrics' },
-    { id: 'socialChart', title: 'Social Metrics' },
-    { id: 'radarChart', title: 'ESG Overview' },
-    { id: 'gaugeChart', title: 'Governance Status' },
-    { id: 'timelineChart', title: 'Incidents Timeline' }
-  ];
-
   return (
     <div className="charts-container">
+      <div className="json-viewer">
+        <div className="json-viewer-header" onClick={() => setIsJsonVisible(!isJsonVisible)}>
+          <h3>Available JSON Data {isJsonVisible ? '▼' : '▶'}</h3>
+        </div>
+        {isJsonVisible && (
+          <div className="json-viewer-content">
+            <CodeMirror
+              value={JSON.stringify(jsonOutput, null, 2)}
+              height="200px"
+              theme={oneDark}
+              extensions={[javascript()]}
+              editable={false}
+            />
+          </div>
+        )}
+      </div>
+      <div className="charts-header">
+        <button className="add-chart-button" onClick={addNewChart}>Add New Chart</button>
+      </div>
       {chartRows.map(({ id, title }) => (
         <div key={id} className="chart-row">
           <div className="chart-config-panel">
             <h3>{title} Configuration</h3>
+            <div className="data-path-input">
+              <input
+                type="text"
+                placeholder="Enter data path (e.g., assets_analysis[0].metrics.value)"
+                value={chartDataPaths[id] || ''}
+                onChange={(e) => updateChartData(id, e.target.value)}
+                className="data-path-field"
+              />
+              <div className="data-path-help">
+                Example paths:
+                <ul>
+                  <li>assets_analysis[0].time_series.metrics.environmental.CO2_emission.values</li>
+                  <li>assets_analysis[0].time_series.metrics.social.employee_satisfaction.values</li>
+                </ul>
+              </div>
+            </div>
             <CodeMirror
-              value={JSON.stringify(chartConfigs[id], null, 2)}
+              value={JSON.stringify(chartConfigs[id] || createDefaultChartConfig(), null, 2)}
               height="400px"
               theme={oneDark}
               extensions={[javascript()]}
@@ -280,10 +407,9 @@ const ChartsTab = ({ jsonOutput, setJsonOutput }) => {
             />
           </div>
           <div className="chart-display-panel">
-            <h3>{title}</h3>
             <ReactECharts
               ref={setChartRef(id)}
-              option={chartConfigs[id]}
+              option={chartConfigs[id] || createDefaultChartConfig()}
               style={{ height: '400px' }}
             />
           </div>
