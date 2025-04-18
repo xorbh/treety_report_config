@@ -1,0 +1,29 @@
+.charts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.chart-config-panel,
+.chart-display-panel {
+  padding: 1rem;
+}
+
+.chart-config-panel {
+  border-right: 1px solid #ddd;
+}
+
+h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+} 

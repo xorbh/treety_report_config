@@ -3,6 +3,7 @@ import ReactECharts from 'echarts-for-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
+import './ChartsTab.css';
 
 const ChartsTab = ({ jsonOutput, setJsonOutput }) => {
   const [data, setData] = useState(null);
@@ -240,101 +241,54 @@ const ChartsTab = ({ jsonOutput, setJsonOutput }) => {
     }
   };
 
+  const handleConfigChange = (chartId, newConfig) => {
+    try {
+      const parsedConfig = JSON.parse(newConfig);
+      setChartConfigs(prev => ({
+        ...prev,
+        [chartId]: parsedConfig
+      }));
+    } catch (error) {
+      console.error('Invalid configuration:', error);
+    }
+  };
+
   if (!data || !chartConfigs.environmentalChart) {
     return <div>Loading charts...</div>;
   }
 
-  return (
-    <div className="charts-grid">
-      <div className="chart-container">
-        <div className="chart-wrapper">
-          <div className="chart-controls">
-            <button onClick={() => handleConfigAction('export', 'environmentalChart')}>Export Config</button>
-            <button onClick={() => handleConfigAction('import', 'environmentalChart')}>Import Config</button>
-            <button onClick={() => handleConfigAction('download', 'environmentalChart')}>Download</button>
-          </div>
-          <ReactECharts
-            ref={setChartRef('environmentalChart')}
-            option={chartConfigs.environmentalChart}
-            style={{ height: '400px' }}
-          />
-        </div>
-      </div>
-      <div className="chart-container">
-        <div className="chart-wrapper">
-          <div className="chart-controls">
-            <button onClick={() => handleConfigAction('export', 'socialChart')}>Export Config</button>
-            <button onClick={() => handleConfigAction('import', 'socialChart')}>Import Config</button>
-            <button onClick={() => handleConfigAction('download', 'socialChart')}>Download</button>
-          </div>
-          <ReactECharts
-            ref={setChartRef('socialChart')}
-            option={chartConfigs.socialChart}
-            style={{ height: '400px' }}
-          />
-        </div>
-      </div>
-      <div className="chart-container">
-        <div className="chart-wrapper">
-          <div className="chart-controls">
-            <button onClick={() => handleConfigAction('export', 'radarChart')}>Export Config</button>
-            <button onClick={() => handleConfigAction('import', 'radarChart')}>Import Config</button>
-            <button onClick={() => handleConfigAction('download', 'radarChart')}>Download</button>
-          </div>
-          <ReactECharts
-            ref={setChartRef('radarChart')}
-            option={chartConfigs.radarChart}
-            style={{ height: '400px' }}
-          />
-        </div>
-      </div>
-      <div className="chart-container">
-        <div className="chart-wrapper">
-          <div className="chart-controls">
-            <button onClick={() => handleConfigAction('export', 'gaugeChart')}>Export Config</button>
-            <button onClick={() => handleConfigAction('import', 'gaugeChart')}>Import Config</button>
-            <button onClick={() => handleConfigAction('download', 'gaugeChart')}>Download</button>
-          </div>
-          <ReactECharts
-            ref={setChartRef('gaugeChart')}
-            option={chartConfigs.gaugeChart}
-            style={{ height: '400px' }}
-          />
-        </div>
-      </div>
-      <div className="chart-container full-width">
-        <div className="chart-wrapper">
-          <div className="chart-controls">
-            <button onClick={() => handleConfigAction('export', 'timelineChart')}>Export Config</button>
-            <button onClick={() => handleConfigAction('import', 'timelineChart')}>Import Config</button>
-            <button onClick={() => handleConfigAction('download', 'timelineChart')}>Download</button>
-          </div>
-          <ReactECharts
-            ref={setChartRef('timelineChart')}
-            option={chartConfigs.timelineChart}
-            style={{ height: '400px' }}
-          />
-        </div>
-      </div>
+  const chartRows = [
+    { id: 'environmentalChart', title: 'Environmental Metrics' },
+    { id: 'socialChart', title: 'Social Metrics' },
+    { id: 'radarChart', title: 'ESG Overview' },
+    { id: 'gaugeChart', title: 'Governance Status' },
+    { id: 'timelineChart', title: 'Incidents Timeline' }
+  ];
 
-      {configModal.isOpen && (
-        <div className="modal">
-          <div className="modal-content">
-            <span className="close" onClick={() => setConfigModal({ isOpen: false, chartId: null, config: '' })}>
-              &times;
-            </span>
-            <h2>Chart Configuration</h2>
+  return (
+    <div className="charts-container">
+      {chartRows.map(({ id, title }) => (
+        <div key={id} className="chart-row">
+          <div className="chart-config-panel">
+            <h3>{title} Configuration</h3>
             <CodeMirror
-              value={configModal.config}
+              value={JSON.stringify(chartConfigs[id], null, 2)}
               height="400px"
               theme={oneDark}
               extensions={[javascript()]}
-              onChange={(value) => setConfigModal(prev => ({ ...prev, config: value }))}
+              onChange={(value) => handleConfigChange(id, value)}
             />
-            <button onClick={handleConfigSave}>Apply Configuration</button>
+          </div>
+          <div className="chart-display-panel">
+            <h3>{title}</h3>
+            <ReactECharts
+              ref={setChartRef(id)}
+              option={chartConfigs[id]}
+              style={{ height: '400px' }}
+            />
           </div>
         </div>
-      )}
+      ))}
     </div>
   );
 };
