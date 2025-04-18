@@ -9,6 +9,7 @@ import styles from './ReportTab.module.css';
 const ReportTab = ({ templateData }) => {
   const [markdownTemplate, setMarkdownTemplate] = useState('');
   const [previewContent, setPreviewContent] = useState('');
+  const [copyStatus, setCopyStatus] = useState(''); // For copy feedback
 
   // Load template and register helpers
   useEffect(() => {
@@ -55,6 +56,34 @@ const ReportTab = ({ templateData }) => {
 
   const handleTemplateChange = (value) => {
     setMarkdownTemplate(value);
+  };
+
+  const handleCopyPreview = () => {
+    const previewElement = document.querySelector(`.${styles['preview-content']}`);
+    if (previewElement) {
+      // Create a range and selection
+      const range = document.createRange();
+      const selection = window.getSelection();
+      
+      // Select the preview content
+      range.selectNodeContents(previewElement);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      try {
+        // Execute copy command
+        document.execCommand('copy');
+        // Deselect after copying
+        selection.removeAllRanges();
+        
+        setCopyStatus('Copied!');
+        setTimeout(() => setCopyStatus(''), 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+        setCopyStatus('Failed to copy');
+        setTimeout(() => setCopyStatus(''), 2000);
+      }
+    }
   };
 
   return (
@@ -107,7 +136,15 @@ const ReportTab = ({ templateData }) => {
       {/* Preview Row */}
       <div className={styles['preview-row']}>
         <div className={styles['editor-container']}>
-          <div className={styles['editor-label']}>Report Preview</div>
+          <div className={styles['editor-header']}>
+            <div className={styles['editor-label']}>Report Preview</div>
+            <button 
+              className={styles['copy-button']} 
+              onClick={handleCopyPreview}
+            >
+              {copyStatus || 'Copy to Clipboard'}
+            </button>
+          </div>
           <div className={styles['report-preview']}>
             <div 
               className={styles['preview-content']}
