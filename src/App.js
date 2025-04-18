@@ -6,7 +6,7 @@ import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('transformer');
-  const [jsonOutput, setJsonOutput] = useState('');
+  const [jsonOutput, setJsonOutput] = useState({});
 
   return (
     <div className="container">
@@ -33,7 +33,7 @@ function App() {
 
       {activeTab === 'transformer' && <TransformerTab jsonOutput={jsonOutput} setJsonOutput={setJsonOutput} />}
       {activeTab === 'charts' && <ChartsTab jsonOutput={jsonOutput} setJsonOutput={setJsonOutput} />}
-      {activeTab === 'report' && <ReportTab templateData={jsonOutput ? JSON.parse(jsonOutput) : {}} />}
+      {activeTab === 'report' && <ReportTab templateData={jsonOutput} />}
     </div>
   );
 }

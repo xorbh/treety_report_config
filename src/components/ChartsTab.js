@@ -43,16 +43,10 @@ const ChartsTab = ({ jsonOutput, setJsonOutput }) => {
     });
 
     // Update the JSON output with chart images
-    try {
-      const currentOutput = jsonOutput ? JSON.parse(jsonOutput) : {};
-      const updatedOutput = {
-        ...currentOutput,
-        chart_images: chartImages
-      };
-      setJsonOutput(JSON.stringify(updatedOutput, null, 2));
-    } catch (error) {
-      console.error('Error updating JSON output with charts:', error);
-    }
+    setJsonOutput({
+      ...jsonOutput,
+      chart_images: chartImages
+    });
   }, [jsonOutput, setJsonOutput]);
 
   // Update charts in output whenever they change

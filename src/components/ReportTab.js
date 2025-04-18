@@ -3,6 +3,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { marked } from 'marked';
 import Handlebars from 'handlebars';
+import ReactJson from '@microlink/react-json-view';
 import styles from './ReportTab.module.css';
 
 const ReportTab = ({ templateData }) => {
@@ -58,12 +59,11 @@ const ReportTab = ({ templateData }) => {
 
   return (
     <div className={styles['report-container']}>
-      {/* Editor Row */}
+      {/* Template Data Row */}
       <div className={styles['editor-row']}>
         <div className={styles['editor-container']}>
           <div className={styles['editor-label']}>Template Data</div>
-          <pre 
-            id="template-data-display" 
+          <div 
             style={{
               background: '#f5f5f5',
               border: '1px solid #ddd',
@@ -71,14 +71,24 @@ const ReportTab = ({ templateData }) => {
               padding: '10px',
               marginBottom: '10px',
               overflow: 'auto',
-              fontFamily: 'monospace',
-              fontSize: '12px',
-              maxHeight: '200px'
+              height: 'calc(100% - 40px)'  // Subtract space for label and padding
             }}
           >
-            {JSON.stringify(templateData, null, 2)}
-          </pre>
+            <ReactJson 
+              src={templateData}
+              name={null}
+              theme="rjv-default"
+              collapsed={1}
+              enableClipboard={true}
+              displayDataTypes={false}
+              style={{ fontFamily: 'monospace', fontSize: '12px' }}
+            />
+          </div>
         </div>
+      </div>
+
+      {/* Template Editor Row */}
+      <div className={styles['template-editor-row']}>
         <div className={styles['editor-container']}>
           <div className={styles['editor-label']}>Markdown Template</div>
           <div style={{ flex: 1, overflow: 'auto' }}>

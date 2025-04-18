@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
+import ReactJson from '@microlink/react-json-view';
 
 const TransformerTab = ({ jsonOutput, setJsonOutput }) => {
-  const [jsonInput, setJsonInput] = useState('');
+  const [jsonInput, setJsonInput] = useState({});
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -22,8 +23,7 @@ const TransformerTab = ({ jsonOutput, setJsonOutput }) => {
         // After transformer code is loaded, load JSON data
         return fetch('/data.json').then(response => response.json())
           .then(data => {
-            const jsonStr = JSON.stringify(data, null, 2);
-            setJsonInput(jsonStr);
+            setJsonInput(data);
             setInfo('Sample JSON data loaded');
             
             // Run the transformation after both code and data are loaded
@@ -31,7 +31,8 @@ const TransformerTab = ({ jsonOutput, setJsonOutput }) => {
               // eslint-disable-next-line no-new-func
               const transformFn = new Function('inputJsonStr', transformerCode);
               const result = transformFn(JSON.stringify(data));
-              setJsonOutput(JSON.stringify(result, null, 2));
+              const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
+              setJsonOutput(parsedResult);
               setSuccess('Code executed successfully');
             } catch (execError) {
               setError('Error executing code: ' + execError.message);
@@ -50,7 +51,7 @@ const TransformerTab = ({ jsonOutput, setJsonOutput }) => {
       fetch('/data.json')
         .then(response => response.json())
         .then(data => {
-          setJsonInput(JSON.stringify(data, null, 2));
+          setJsonInput(data);
           setInfo('Sample JSON data loaded');
           setError('');
         })
@@ -68,15 +69,13 @@ const TransformerTab = ({ jsonOutput, setJsonOutput }) => {
     setInfo('');
 
     try {
-      const input = JSON.parse(jsonInput);
-      
-      // Create a new Function from the code string
       // eslint-disable-next-line no-new-func
       const transformFn = new Function('inputJsonStr', code);
       
       try {
-        const result = transformFn(JSON.stringify(input));
-        setJsonOutput(JSON.stringify(result, null, 2));
+        const result = transformFn(JSON.stringify(jsonInput));
+        const parsedResult = typeof result === 'string' ? JSON.parse(result) : result;
+        setJsonOutput(parsedResult);
         setSuccess('Code executed successfully');
       } catch (execError) {
         setError('Error executing code: ' + execError.message);
@@ -96,24 +95,44 @@ const TransformerTab = ({ jsonOutput, setJsonOutput }) => {
               Load JSON
             </button>
           </div>
-          <CodeMirror
-            value={jsonInput}
-            height="300px"
-            theme={oneDark}
-            extensions={[javascript()]}
-            onChange={(value) => setJsonInput(value)}
-          />
+          <div style={{
+            background: '#282c34',
+            padding: '10px',
+            borderRadius: '4px',
+            height: '300px',
+            overflow: 'auto'
+          }}>
+            <ReactJson
+              src={jsonInput}
+              theme="monokai"
+              name={null}
+              collapsed={1}
+              enableClipboard={true}
+              displayDataTypes={false}
+              style={{ fontFamily: 'monospace', fontSize: '12px' }}
+            />
+          </div>
           {error && <div className="error">{error}</div>}
         </div>
         <div className="editor-container">
           <div className="editor-label">JSON Output</div>
-          <CodeMirror
-            value={jsonOutput}
-            height="300px"
-            theme={oneDark}
-            extensions={[javascript()]}
-            readOnly={true}
-          />
+          <div style={{
+            background: '#282c34',
+            padding: '10px',
+            borderRadius: '4px',
+            height: '300px',
+            overflow: 'auto'
+          }}>
+            <ReactJson
+              src={jsonOutput}
+              theme="monokai"
+              name={null}
+              collapsed={1}
+              enableClipboard={true}
+              displayDataTypes={false}
+              style={{ fontFamily: 'monospace', fontSize: '12px' }}
+            />
+          </div>
         </div>
       </div>
 

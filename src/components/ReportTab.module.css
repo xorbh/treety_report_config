@@ -9,14 +9,20 @@
 
 .editor-row {
   display: flex;
-  gap: 20px;
-  height: 40vh;
+  height: 50vh;
+  width: 100%;
+}
+
+.template-editor-row {
+  display: flex;
+  height: 30vh;
+  width: 100%;
 }
 
 .preview-row {
   flex: 1;
-  min-height: 40vh;
-  margin-top: 20px;
+  min-height: 30vh;
+  width: 100%;
 }
 
 .editor-container {
@@ -26,7 +32,7 @@
   border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 15px;
-  flex: 1;
+  width: 100%;
 }
 
 .editor-label {
