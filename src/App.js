@@ -15,7 +15,7 @@ function App() {
           className={`tab ${activeTab === 'transformer' ? 'active' : ''}`}
           onClick={() => setActiveTab('transformer')}
         >
-          Transformer
+          Data
         </button>
         <button 
           className={`tab ${activeTab === 'charts' ? 'active' : ''}`}
