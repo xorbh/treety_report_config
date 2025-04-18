@@ -65,19 +65,19 @@ const ReportTab = ({ templateData }) => {
           <div className={styles['editor-label']}>Template Data</div>
           <div 
             style={{
-              background: '#f5f5f5',
-              border: '1px solid #ddd',
+              background: '#282c34',
+              border: '1px solid #444',
               borderRadius: '4px',
               padding: '10px',
               marginBottom: '10px',
               overflow: 'auto',
-              height: 'calc(100% - 40px)'  // Subtract space for label and padding
+              height: 'calc(100% - 40px)'
             }}
           >
             <ReactJson 
               src={templateData}
+              theme="monokai"
               name={null}
-              theme="rjv-default"
               collapsed={1}
               enableClipboard={true}
               displayDataTypes={false}
