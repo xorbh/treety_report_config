@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactECharts from 'echarts-for-react';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
 
-const ChartsTab = () => {
+const ChartsTab = ({ jsonOutput, setJsonOutput }) => {
   const [data, setData] = useState(null);
   const [configModal, setConfigModal] = useState({ isOpen: false, chartId: null, config: '' });
   const [chartConfigs, setChartConfigs] = useState({
@@ -14,6 +14,55 @@ const ChartsTab = () => {
     gaugeChart: null,
     timelineChart: null
   });
+  
+  // Use a ref object to store chart instances
+  const chartRefs = React.useRef({
+    environmentalChart: null,
+    socialChart: null,
+    radarChart: null,
+    gaugeChart: null,
+    timelineChart: null
+  });
+
+  // Create stable ref callbacks for each chart
+  const setChartRef = useCallback((chartId) => (ref) => {
+    if (ref) {
+      chartRefs.current[chartId] = ref;
+    }
+  }, []);
+
+  // Function to capture all charts as base64 and update JSON output
+  const updateChartsInOutput = useCallback(() => {
+    const chartImages = {};
+    
+    Object.keys(chartRefs.current).forEach(chartId => {
+      const chartInstance = chartRefs.current[chartId]?.getEchartsInstance();
+      if (chartInstance) {
+        chartImages[chartId.replace('Chart', '')] = chartInstance.getDataURL();
+      }
+    });
+
+    // Update the JSON output with chart images
+    try {
+      const currentOutput = jsonOutput ? JSON.parse(jsonOutput) : {};
+      const updatedOutput = {
+        ...currentOutput,
+        chart_images: chartImages
+      };
+      setJsonOutput(JSON.stringify(updatedOutput, null, 2));
+    } catch (error) {
+      console.error('Error updating JSON output with charts:', error);
+    }
+  }, [jsonOutput, setJsonOutput]);
+
+  // Update charts in output whenever they change
+  useEffect(() => {
+    if (chartConfigs.environmentalChart) {
+      // Wait for charts to render before capturing
+      const timer = setTimeout(updateChartsInOutput, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [chartConfigs, updateChartsInOutput]);
 
   useEffect(() => {
     // Load initial data
@@ -211,7 +260,7 @@ const ChartsTab = () => {
             <button onClick={() => handleConfigAction('download', 'environmentalChart')}>Download</button>
           </div>
           <ReactECharts
-            id="environmentalChart"
+            ref={setChartRef('environmentalChart')}
             option={chartConfigs.environmentalChart}
             style={{ height: '400px' }}
           />
@@ -225,7 +274,7 @@ const ChartsTab = () => {
             <button onClick={() => handleConfigAction('download', 'socialChart')}>Download</button>
           </div>
           <ReactECharts
-            id="socialChart"
+            ref={setChartRef('socialChart')}
             option={chartConfigs.socialChart}
             style={{ height: '400px' }}
           />
@@ -239,7 +288,7 @@ const ChartsTab = () => {
             <button onClick={() => handleConfigAction('download', 'radarChart')}>Download</button>
           </div>
           <ReactECharts
-            id="radarChart"
+            ref={setChartRef('radarChart')}
             option={chartConfigs.radarChart}
             style={{ height: '400px' }}
           />
@@ -253,7 +302,7 @@ const ChartsTab = () => {
             <button onClick={() => handleConfigAction('download', 'gaugeChart')}>Download</button>
           </div>
           <ReactECharts
-            id="gaugeChart"
+            ref={setChartRef('gaugeChart')}
             option={chartConfigs.gaugeChart}
             style={{ height: '400px' }}
           />
@@ -267,7 +316,7 @@ const ChartsTab = () => {
             <button onClick={() => handleConfigAction('download', 'timelineChart')}>Download</button>
           </div>
           <ReactECharts
-            id="timelineChart"
+            ref={setChartRef('timelineChart')}
             option={chartConfigs.timelineChart}
             style={{ height: '400px' }}
           />

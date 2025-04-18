@@ -32,7 +32,7 @@ function App() {
       </div>
 
       {activeTab === 'transformer' && <TransformerTab jsonOutput={jsonOutput} setJsonOutput={setJsonOutput} />}
-      {activeTab === 'charts' && <ChartsTab />}
+      {activeTab === 'charts' && <ChartsTab jsonOutput={jsonOutput} setJsonOutput={setJsonOutput} />}
       {activeTab === 'report' && <ReportTab templateData={jsonOutput ? JSON.parse(jsonOutput) : {}} />}
     </div>
   );
