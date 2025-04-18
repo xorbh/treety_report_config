@@ -1,0 +1,216 @@
+{
+  "fund_name": "Global Sustainability Fund",
+  "analysis_period": "2020-2023",
+  "assets_analysis": [
+    {
+      "name": "Tech Corp A",
+      "sector": "Technology",
+      "time_series": {
+        "time_points": ["2020-Q1", "2020-Q2", "2020-Q3", "2020-Q4", "2021-Q1", "2021-Q2", "2021-Q3", "2021-Q4", "2022-Q1", "2022-Q2", "2022-Q3", "2022-Q4", "2023-Q1", "2023-Q2"],
+        "metrics": {
+          "environmental": {
+            "CO2_emission": {
+              "values": [150, 145, 140, 138, 135, 130, 128, 125, 120, 118, 115, 110, 105, 100],
+              "unit": "metric tons",
+              "stats": {
+                "average": 125.64,
+                "trend": "decreasing",
+                "year_over_year_change": -15.2
+              }
+            },
+            "water_usage": {
+              "values": [500, 490, 485, 480, 475, 470, 465, 460, 455, 450, 445, 440, 435, 430],
+              "unit": "thousand gallons",
+              "stats": {
+                "average": 462.86,
+                "trend": "decreasing",
+                "year_over_year_change": -8.5
+              }
+            },
+            "renewable_energy_percentage": {
+              "values": [20, 22, 25, 28, 30, 32, 35, 38, 40, 42, 45, 48, 50, 52],
+              "unit": "percentage",
+              "stats": {
+                "average": 36.21,
+                "trend": "increasing",
+                "year_over_year_change": 12.5
+              }
+            }
+          },
+          "social": {
+            "board_diversity": {
+              "female_percentage": {
+                "values": [25, 25, 25, 28, 28, 30, 30, 32, 32, 35, 35, 38, 38, 40],
+                "stats": {
+                  "average": 31.5,
+                  "trend": "increasing",
+                  "year_over_year_change": 8.0
+                }
+              },
+              "minority_percentage": {
+                "values": [20, 20, 22, 22, 25, 25, 28, 28, 30, 30, 32, 32, 35, 35],
+                "stats": {
+                  "average": 27.43,
+                  "trend": "increasing",
+                  "year_over_year_change": 7.0
+                }
+              }
+            },
+            "employee_satisfaction": {
+              "values": [7.5, 7.6, 7.6, 7.7, 7.8, 7.8, 7.9, 8.0, 8.1, 8.2, 8.2, 8.3, 8.4, 8.5],
+              "unit": "score out of 10",
+              "stats": {
+                "average": 8.04,
+                "trend": "increasing",
+                "year_over_year_change": 0.5
+              }
+            },
+            "pay_equity_ratio": {
+              "values": [0.82, 0.83, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.90, 0.91, 0.92, 0.93, 0.94, 0.95],
+              "unit": "ratio",
+              "stats": {
+                "average": 0.89,
+                "trend": "increasing",
+                "year_over_year_change": 0.05
+              }
+            }
+          },
+          "governance": {
+            "board_independence": {
+              "values": [70, 70, 72, 72, 75, 75, 78, 78, 80, 80, 82, 82, 85, 85],
+              "unit": "percentage",
+              "stats": {
+                "average": 77.43,
+                "trend": "increasing",
+                "year_over_year_change": 7.0
+              }
+            },
+            "ethics_violations": {
+              "values": [5, 4, 4, 3, 3, 2, 2, 2, 1, 1, 1, 0, 0, 0],
+              "unit": "incidents",
+              "stats": {
+                "average": 2.0,
+                "trend": "decreasing",
+                "year_over_year_change": -3.0
+              }
+            },
+            "cybersecurity_incidents": {
+              "values": [3, 3, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+              "unit": "incidents",
+              "stats": {
+                "average": 1.14,
+                "trend": "decreasing",
+                "year_over_year_change": -2.0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Green Energy Corp",
+      "sector": "Energy",
+      "time_series": {
+        "time_points": ["2020-Q1", "2020-Q2", "2020-Q3", "2020-Q4", "2021-Q1", "2021-Q2", "2021-Q3", "2021-Q4", "2022-Q1", "2022-Q2", "2022-Q3", "2022-Q4", "2023-Q1", "2023-Q2"],
+        "metrics": {
+          "environmental": {
+            "CO2_emission": {
+              "values": [200, 190, 185, 180, 170, 165, 160, 155, 145, 140, 135, 130, 125, 120],
+              "unit": "metric tons",
+              "stats": {
+                "average": 157.14,
+                "trend": "decreasing",
+                "year_over_year_change": -20.5
+              }
+            },
+            "water_usage": {
+              "values": [600, 590, 580, 570, 560, 550, 540, 530, 520, 510, 500, 490, 480, 470],
+              "unit": "thousand gallons",
+              "stats": {
+                "average": 534.29,
+                "trend": "decreasing",
+                "year_over_year_change": -10.2
+              }
+            },
+            "renewable_energy_percentage": {
+              "values": [40, 42, 45, 48, 50, 52, 55, 58, 60, 62, 65, 68, 70, 72],
+              "unit": "percentage",
+              "stats": {
+                "average": 56.21,
+                "trend": "increasing",
+                "year_over_year_change": 14.0
+              }
+            }
+          },
+          "social": {
+            "board_diversity": {
+              "female_percentage": {
+                "values": [30, 30, 32, 32, 35, 35, 38, 38, 40, 40, 42, 42, 45, 45],
+                "stats": {
+                  "average": 37.43,
+                  "trend": "increasing",
+                  "year_over_year_change": 7.0
+                }
+              },
+              "minority_percentage": {
+                "values": [25, 25, 28, 28, 30, 30, 32, 32, 35, 35, 38, 38, 40, 40],
+                "stats": {
+                  "average": 32.57,
+                  "trend": "increasing",
+                  "year_over_year_change": 8.0
+                }
+              }
+            },
+            "employee_satisfaction": {
+              "values": [7.8, 7.9, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 9.0, 9.1],
+              "unit": "score out of 10",
+              "stats": {
+                "average": 8.45,
+                "trend": "increasing",
+                "year_over_year_change": 0.6
+              }
+            },
+            "pay_equity_ratio": {
+              "values": [0.85, 0.86, 0.87, 0.88, 0.89, 0.90, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98],
+              "unit": "ratio",
+              "stats": {
+                "average": 0.91,
+                "trend": "increasing",
+                "year_over_year_change": 0.06
+              }
+            }
+          },
+          "governance": {
+            "board_independence": {
+              "values": [75, 75, 78, 78, 80, 80, 82, 82, 85, 85, 88, 88, 90, 90],
+              "unit": "percentage",
+              "stats": {
+                "average": 82.57,
+                "trend": "increasing",
+                "year_over_year_change": 8.0
+              }
+            },
+            "ethics_violations": {
+              "values": [4, 3, 3, 2, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+              "unit": "incidents",
+              "stats": {
+                "average": 1.21,
+                "trend": "decreasing",
+                "year_over_year_change": -2.0
+              }
+            },
+            "cybersecurity_incidents": {
+              "values": [2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+              "unit": "incidents",
+              "stats": {
+                "average": 0.57,
+                "trend": "decreasing",
+                "year_over_year_change": -1.0
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+} 

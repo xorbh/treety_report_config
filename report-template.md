@@ -34,7 +34,7 @@ This report provides a comprehensive analysis of Environmental, Social, and Gove
 
 ## 1. Environmental Performance
 ### 1.1 Environmental Metrics Overview
-![Environmental Metrics]({{ chart_images.environmental }})
+![environmental]({{ chart_images.environmental }})
 
 This chart displays three key environmental metrics over time:
 - CO2 Emissions (measured in metric tons)
@@ -45,20 +45,20 @@ This chart displays three key environmental metrics over time:
 {{#each assets_analysis}}
 #### {{ name }}
 - **CO2 Emissions**
-  - Current Level: {{ time_series.metrics.environmental.CO2_emission.last_value }}
+  - Current Level: {{ time_series.metrics.environmental.CO2_emission.stats.current }} {{ time_series.metrics.environmental.CO2_emission.unit }}
   - Year-over-Year Change: {{ time_series.metrics.environmental.CO2_emission.stats.year_over_year_change }}%
   - Trend: {{ time_series.metrics.environmental.CO2_emission.stats.trend }}
 - **Water Usage**
-  - Current Usage: {{ time_series.metrics.environmental.water_usage.last_value }}
+  - Current Usage: {{ time_series.metrics.environmental.water_usage.stats.current }} {{ time_series.metrics.environmental.water_usage.unit }}
   - Year-over-Year Change: {{ time_series.metrics.environmental.water_usage.stats.year_over_year_change }}%
 - **Renewable Energy**
-  - Current Percentage: {{ time_series.metrics.environmental.renewable_energy_percentage.last_value }}%
-  - Target Achievement: {{ time_series.metrics.environmental.renewable_energy_percentage.stats.target_achievement }}%
+  - Current Percentage: {{ time_series.metrics.environmental.renewable_energy_percentage.stats.current }}%
+  - Year-over-Year Change: {{ time_series.metrics.environmental.renewable_energy_percentage.stats.year_over_year_change }}%
 {{/each}}
 
 ## 2. Social Impact
 ### 2.1 Social Metrics Visualization
-![Social Metrics]({{ chart_images.social }})
+![social]({{ chart_images.social }})
 
 This visualization tracks:
 - Board Gender Diversity
@@ -70,21 +70,21 @@ This visualization tracks:
 {{#each assets_analysis}}
 #### {{ name }}
 - **Board Diversity**
-  - Female Representation: {{ time_series.metrics.social.board_diversity.female_percentage.last_value }}%
-  - Minority Representation: {{ time_series.metrics.social.board_diversity.minority_percentage.last_value }}%
+  - Female Representation: {{ time_series.metrics.social.board_diversity.female_percentage.stats.current }}%
+  - Minority Representation: {{ time_series.metrics.social.board_diversity.minority_percentage.stats.current }}%
 - **Employee Metrics**
-  - Satisfaction Score: {{ time_series.metrics.social.employee_satisfaction.last_value }}/10
-  - Pay Equity Ratio: {{ time_series.metrics.social.pay_equity_ratio.last_value }}
+  - Satisfaction Score: {{ time_series.metrics.social.employee_satisfaction.stats.current }}/10
+  - Pay Equity Ratio: {{ time_series.metrics.social.pay_equity_ratio.stats.current }}
 {{/each}}
 
 ## 3. Governance Overview
 ### 3.1 Current Governance Status
-![Governance Status]({{ chart_images.gauge }})
+![gauge]({{ chart_images.gauge }})
 
 The gauge chart above shows the current board independence levels for each asset.
 
 ### 3.2 Ethics and Security Timeline
-![Incidents Timeline]({{ chart_images.timeline }})
+![timeline]({{ chart_images.timeline }})
 
 This chart tracks:
 - Ethics violations
@@ -94,15 +94,15 @@ This chart tracks:
 ### 3.3 Governance Metrics
 {{#each assets_analysis}}
 #### {{ name }}
-- **Board Independence**: {{ time_series.metrics.governance.board_independence.last_value }}%
+- **Board Independence**: {{ time_series.metrics.governance.board_independence.stats.current }}%
 - **Incidents This Period**:
-  - Ethics Violations: {{ time_series.metrics.governance.ethics_violations.last_value }}
-  - Cybersecurity Incidents: {{ time_series.metrics.governance.cybersecurity_incidents.last_value }}
+  - Ethics Violations: {{ time_series.metrics.governance.ethics_violations.stats.current }}
+  - Cybersecurity Incidents: {{ time_series.metrics.governance.cybersecurity_incidents.stats.current }}
 {{/each}}
 
 ## 4. Integrated ESG Performance
 ### 4.1 ESG Radar Analysis
-![ESG Overview]({{ chart_images.radar }})
+![radar]({{ chart_images.radar }})
 
 The radar chart provides a comprehensive view of ESG performance across six key dimensions:
 1. CO2 Reduction Efforts
@@ -114,19 +114,28 @@ The radar chart provides a comprehensive view of ESG performance across six key 
 
 ### 4.2 Comparative Analysis
 {{#each assets_analysis}}
-#### {{ name }} - Overall ESG Score
-- Environmental Score: {{ time_series.metrics.environmental.overall_score.last_value }}/100
-- Social Score: {{ time_series.metrics.social.overall_score.last_value }}/100
-- Governance Score: {{ time_series.metrics.governance.overall_score.last_value }}/100
+#### {{ name }} - Overall Performance
+- Environmental:
+  - CO2 Emissions: {{ time_series.metrics.environmental.CO2_emission.stats.current }} {{ time_series.metrics.environmental.CO2_emission.unit }}
+  - Water Usage: {{ time_series.metrics.environmental.water_usage.stats.current }} {{ time_series.metrics.environmental.water_usage.unit }}
+  - Renewable Energy: {{ time_series.metrics.environmental.renewable_energy_percentage.stats.current }}%
+- Social:
+  - Board Diversity: {{ math time_series.metrics.social.board_diversity.female_percentage.stats.current "+" time_series.metrics.social.board_diversity.minority_percentage.stats.current }}%
+  - Employee Satisfaction: {{ time_series.metrics.social.employee_satisfaction.stats.current }}/10
+  - Pay Equity: {{ time_series.metrics.social.pay_equity_ratio.stats.current }}
+- Governance:
+  - Board Independence: {{ time_series.metrics.governance.board_independence.stats.current }}%
+  - Ethics Violations: {{ time_series.metrics.governance.ethics_violations.stats.current }}
+  - Cybersecurity Incidents: {{ time_series.metrics.governance.cybersecurity_incidents.stats.current }}
 {{/each}}
 
 ## 5. Recommendations and Future Outlook
 Based on the analyzed data, the following focus areas are identified:
 {{#each assets_analysis}}
 ### {{ name }}
-- **Primary Focus**: {{ analysis.primary_focus }}
-- **Improvement Areas**: {{ analysis.improvement_areas }}
-- **Risk Factors**: {{ analysis.risk_factors }}
+- **Primary Focus**: Improve {{ time_series.metrics.environmental.CO2_emission.stats.trend }} trend in CO2 emissions
+- **Improvement Areas**: Continue progress in board diversity and employee satisfaction
+- **Risk Factors**: Monitor cybersecurity and ethics compliance
 {{/each}}
 
 ## 6. Methodology
