@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import TransformerTab from './components/TransformerTab';
 import ChartsTab from './components/ChartsTab';
+import ReportTab from './components/ReportTab';
 import './App.css';
 
 function App() {
@@ -31,7 +32,7 @@ function App() {
 
       {activeTab === 'transformer' && <TransformerTab />}
       {activeTab === 'charts' && <ChartsTab />}
-      {/* Report tab will be added later */}
+      {activeTab === 'report' && <ReportTab />}
     </div>
   );
 }
