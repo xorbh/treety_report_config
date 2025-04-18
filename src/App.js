@@ -6,6 +6,7 @@ import './App.css';
 
 function App() {
   const [activeTab, setActiveTab] = useState('transformer');
+  const [jsonOutput, setJsonOutput] = useState('');
 
   return (
     <div className="container">
@@ -30,9 +31,9 @@ function App() {
         </button>
       </div>
 
-      {activeTab === 'transformer' && <TransformerTab />}
+      {activeTab === 'transformer' && <TransformerTab jsonOutput={jsonOutput} setJsonOutput={setJsonOutput} />}
       {activeTab === 'charts' && <ChartsTab />}
-      {activeTab === 'report' && <ReportTab />}
+      {activeTab === 'report' && <ReportTab templateData={jsonOutput ? JSON.parse(jsonOutput) : {}} />}
     </div>
   );
 }

@@ -3,9 +3,8 @@ import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
 
-const TransformerTab = () => {
+const TransformerTab = ({ jsonOutput, setJsonOutput }) => {
   const [jsonInput, setJsonInput] = useState('');
-  const [jsonOutput, setJsonOutput] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -44,7 +43,7 @@ const TransformerTab = () => {
         // Set fallback code
         setCode('// Transform your JSON data here\n// Example:\n// return input.map(item => ({ ...item, processed: true }));');
       });
-  }, []);
+  }, [setJsonOutput]);
 
   const loadJSONData = () => {
     try {

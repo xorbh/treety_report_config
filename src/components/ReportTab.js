@@ -5,13 +5,11 @@ import { marked } from 'marked';
 import Handlebars from 'handlebars';
 import styles from './ReportTab.module.css';
 
-const ReportTab = () => {
-  // Initialize with empty template data
-  const [templateData, setTemplateData] = useState({});
+const ReportTab = ({ templateData }) => {
   const [markdownTemplate, setMarkdownTemplate] = useState('');
   const [previewContent, setPreviewContent] = useState('');
 
-  // Load template and data
+  // Load template and register helpers
   useEffect(() => {
     // Register a Handlebars helper for math operations
     Handlebars.registerHelper('math', function(lvalue, operator, rvalue) {
@@ -37,22 +35,11 @@ const ReportTab = () => {
         console.error('Error loading template:', error);
         setPreviewContent('<p style="color: red">Error loading template</p>');
       });
-
-    // Load JSON data
-    fetch('/data.json')
-      .then(response => response.json())
-      .then(data => {
-        setTemplateData(data);
-      })
-      .catch(error => {
-        console.error('Error loading data:', error);
-        setPreviewContent('<p style="color: red">Error loading data</p>');
-      });
   }, []);
 
   useEffect(() => {
     // Update preview whenever template or data changes
-    if (!markdownTemplate || Object.keys(templateData).length === 0) return;
+    if (!markdownTemplate) return;
 
     try {
       const template = Handlebars.compile(markdownTemplate);
