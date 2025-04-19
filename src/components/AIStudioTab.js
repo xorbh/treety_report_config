@@ -16,7 +16,77 @@ function AIStudioTab({ jsonOutput }) {
   const [chartConfig, setChartConfig] = useState(null);
   const [refinementPrompt, setRefinementPrompt] = useState('');
   const [refiningChart, setRefiningChart] = useState(false);
+  const [showJsonModal, setShowJsonModal] = useState(false);
   const chartRef = React.useRef(null);
+
+  // Function to get value from object using a data path
+  const getValueByPath = (obj, path) => {
+    try {
+      return path.split('.').reduce((acc, part) => {
+        // Handle array indexing
+        if (part.includes('[') && part.includes(']')) {
+          const arrayPart = part.split('[');
+          const arrayName = arrayPart[0];
+          const index = parseInt(arrayPart[1].replace(']', ''));
+          return acc[arrayName][index];
+        }
+        return acc[part];
+      }, obj);
+    } catch (error) {
+      console.error('Invalid data path:', path);
+      return null;
+    }
+  };
+
+  // Function to process chart configuration and replace data paths with actual data
+  const processChartConfig = (config) => {
+    if (!config || typeof config !== 'object') return config;
+
+    const processValue = (value) => {
+      if (!value || typeof value !== 'object') return value;
+      
+      if (value.dataPath) {
+        const data = getValueByPath(displayData, value.dataPath);
+        console.log('Processing data path:', value.dataPath, 'Result:', data);
+        return data;
+      }
+      
+      if (Array.isArray(value)) {
+        return value.map(item => processValue(item));
+      }
+      
+      const result = {};
+      for (const key in value) {
+        result[key] = processValue(value[key]);
+      }
+      return result;
+    };
+
+    const processedConfig = processValue(config);
+    
+    // Ensure the config has required properties
+    if (!processedConfig.series || !Array.isArray(processedConfig.series)) {
+      console.warn('Invalid chart configuration: missing or invalid series array');
+      return {
+        ...processedConfig,
+        series: [{
+          type: 'line',
+          data: []
+        }]
+      };
+    }
+
+    // Ensure each series has required properties
+    processedConfig.series = processedConfig.series.map(series => ({
+      type: series.type || 'line',
+      data: Array.isArray(series.data) ? series.data : [],
+      name: series.name || 'Series',
+      ...series
+    }));
+
+    console.log('Processed chart config:', processedConfig);
+    return processedConfig;
+  };
 
   // Create default chart configuration
   const createDefaultChartConfig = () => ({
@@ -39,7 +109,9 @@ function AIStudioTab({ jsonOutput }) {
   const handleConfigChange = useCallback((value) => {
     try {
       const parsedConfig = JSON.parse(value);
-      setChartConfig(parsedConfig);
+      console.log('Parsed config:', parsedConfig);
+      const processedConfig = processChartConfig(parsedConfig);
+      setChartConfig(processedConfig);
     } catch (error) {
       console.error('Invalid configuration:', error);
     }
@@ -93,6 +165,28 @@ function AIStudioTab({ jsonOutput }) {
       "chartType": "Chart Type",
       "config": {
         // ECharts configuration object
+        // IMPORTANT: Instead of embedding data directly, use data paths to reference the source data
+        // The configuration MUST include:
+        // 1. title: { text: string }
+        // 2. series: array of series objects, each with:
+        //    - type: chart type (e.g., 'line', 'bar')
+        //    - name: series name
+        //    - dataPath: path to the data array
+        // Example:
+        {
+          "title": { "text": "CO2 Emissions Over Time" },
+          "tooltip": { "trigger": "axis" },
+          "xAxis": { 
+            "type": "category",
+            "dataPath": "assets_analysis[0].time_series.time_points"
+          },
+          "yAxis": { "type": "value" },
+          "series": [{
+            "name": "CO2 Emissions",
+            "type": "line",
+            "dataPath": "assets_analysis[0].time_series.metrics.environmental.CO2_emission.values"
+          }]
+        }
       }
     }
   ]
@@ -130,7 +224,8 @@ function AIStudioTab({ jsonOutput }) {
         
         // Set the first suggestion's config as the initial chart config
         if (parsedSuggestions?.suggestions?.[0]?.config) {
-          setChartConfig(parsedSuggestions.suggestions[0].config);
+          const processedConfig = processChartConfig(parsedSuggestions.suggestions[0].config);
+          setChartConfig(processedConfig);
         } else {
           setChartConfig(createDefaultChartConfig());
         }
@@ -197,7 +292,8 @@ function AIStudioTab({ jsonOutput }) {
       try {
         const messageContent = data.choices[0]?.message?.content || '';
         const parsedConfig = JSON.parse(messageContent);
-        setChartConfig(parsedConfig);
+        const processedConfig = processChartConfig(parsedConfig);
+        setChartConfig(processedConfig);
       } catch (parseError) {
         setError('Failed to parse AI response as JSON');
       }
@@ -257,7 +353,15 @@ function AIStudioTab({ jsonOutput }) {
       {suggestions && (
         <div className="results-row">
           <div className="response-section">
-            <h3>Visualization Suggestions:</h3>
+            <div className="response-header">
+              <h3>Visualization Suggestions:</h3>
+              <button 
+                className="view-json-button"
+                onClick={() => setShowJsonModal(true)}
+              >
+                View Raw JSON
+              </button>
+            </div>
             <div className="suggestions-table">
               <table>
                 <thead>
@@ -272,7 +376,7 @@ function AIStudioTab({ jsonOutput }) {
                     <tr 
                       key={index} 
                       className="suggestion-row"
-                      onClick={() => suggestion.config && setChartConfig(suggestion.config)}
+                      onClick={() => suggestion.config && setChartConfig(processChartConfig(suggestion.config))}
                     >
                       <td className="suggestion-title">{suggestion.title}</td>
                       <td className="suggestion-type">{suggestion.chartType}</td>
@@ -281,6 +385,39 @@ function AIStudioTab({ jsonOutput }) {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* JSON Modal */}
+      {showJsonModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Visualization Suggestions JSON</h2>
+              <button 
+                className="close-button"
+                onClick={() => setShowJsonModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <ReactJson 
+                src={suggestions}
+                theme="monokai"
+                displayDataTypes={false}
+                enableClipboard={true}
+                collapsed={1}
+                style={{ 
+                  backgroundColor: '#272822',
+                  padding: '15px',
+                  borderRadius: '4px',
+                  maxHeight: '70vh',
+                  overflow: 'auto'
+                }}
+              />
             </div>
           </div>
         </div>
@@ -318,7 +455,7 @@ function AIStudioTab({ jsonOutput }) {
         <div className="chart-display-panel">
           <ReactECharts
             ref={chartRef}
-            option={chartConfig || createDefaultChartConfig()}
+            option={processChartConfig(chartConfig) || createDefaultChartConfig()}
             style={{ height: '400px' }}
           />
         </div>
