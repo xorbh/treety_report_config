@@ -8,12 +8,14 @@ import './AIStudioTab.css';
 
 function AIStudioTab({ jsonOutput }) {
   const [apiKey, setApiKey] = useState('');
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState('Suggest some interesting visualizations based on this data');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [suggestions, setSuggestions] = useState(null);
   const [chartConfig, setChartConfig] = useState(null);
+  const [refinementPrompt, setRefinementPrompt] = useState('');
+  const [refiningChart, setRefiningChart] = useState(false);
   const chartRef = React.useRef(null);
 
   // Create default chart configuration
@@ -144,6 +146,68 @@ function AIStudioTab({ jsonOutput }) {
     }
   };
 
+  const handleChartRefinement = async () => {
+    if (!apiKey.trim()) {
+      setError('Please enter your OpenAI API key');
+      return;
+    }
+    if (!refinementPrompt.trim()) {
+      setError('Please enter a refinement prompt');
+      return;
+    }
+    if (!chartConfig) {
+      setError('No chart configuration selected');
+      return;
+    }
+
+    setRefiningChart(true);
+    setError(null);
+
+    try {
+      const messages = [
+        {
+          role: 'system',
+          content: `You are an AI assistant specializing in ECharts configurations. You must respond with a valid JSON object that follows the ECharts configuration schema. Analyze the provided chart configuration and return a modified JSON configuration object based on the user's refinement request. Do not include any explanatory text, only return the JSON configuration object.`
+        },
+        {
+          role: 'user',
+          content: `Here is the current chart configuration:\n${JSON.stringify(chartConfig, null, 2)}\n\nPlease modify this configuration based on the following request: ${refinementPrompt}`
+        }
+      ];
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: messages,
+          response_format: { type: "json_object" }
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Failed to get response from OpenAI');
+      }
+
+      try {
+        const messageContent = data.choices[0]?.message?.content || '';
+        const parsedConfig = JSON.parse(messageContent);
+        setChartConfig(parsedConfig);
+      } catch (parseError) {
+        setError('Failed to parse AI response as JSON');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRefiningChart(false);
+    }
+  };
+
   // Get the display data by stripping chart_images from the result or jsonOutput
   const displayData = stripChartImages(jsonOutput);
 
@@ -221,6 +285,24 @@ function AIStudioTab({ jsonOutput }) {
           </div>
         </div>
       )}
+
+      <div className="refinement-row">
+        <div className="refinement-input">
+          <textarea
+            placeholder="Enter refinement prompt for the selected chart (e.g., 'make the lines thicker', 'change to bar chart', 'use a dark theme')"
+            value={refinementPrompt}
+            onChange={(e) => setRefinementPrompt(e.target.value)}
+            className="refinement-field"
+          />
+          <button 
+            onClick={handleChartRefinement}
+            disabled={refiningChart || !chartConfig}
+            className="refinement-button"
+          >
+            {refiningChart ? 'Refining...' : 'Refine Chart'}
+          </button>
+        </div>
+      </div>
 
       <div className="chart-row">
         <div className="chart-config-panel">

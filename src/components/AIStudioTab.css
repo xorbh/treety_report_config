@@ -195,4 +195,49 @@
   padding: 15px;
   border-radius: 4px;
   border: 1px solid #dee2e6;
+}
+
+.refinement-row {
+  margin-bottom: 20px;
+}
+
+.refinement-input {
+  display: flex;
+  gap: 10px;
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+.refinement-field {
+  flex: 1;
+  min-height: 60px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.refinement-button {
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  align-self: flex-start;
+  white-space: nowrap;
+  transition: background-color 0.2s;
+}
+
+.refinement-button:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.refinement-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 } 
