@@ -11,9 +11,11 @@
     "echarts": "^5.4.3",
     "echarts-for-react": "^3.0.2",
     "handlebars": "^4.7.8",
+    "jsoneditor": "^10.2.0",
     "marked": "^11.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-json-view": "^1.21.3",
     "react-scripts": "5.0.1"
   },
   "scripts": {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import TransformerTab from './components/TransformerTab';
 import ChartsTab from './components/ChartsTab';
 import ReportTab from './components/ReportTab';
+import AIStudioTab from './components/AIStudioTab';
 import './App.css';
 
 function App() {
@@ -29,11 +30,18 @@ function App() {
         >
           Report
         </button>
+        <button 
+          className={`tab ${activeTab === 'aiStudio' ? 'active' : ''}`}
+          onClick={() => setActiveTab('aiStudio')}
+        >
+          AI Studio
+        </button>
       </div>
 
       {activeTab === 'transformer' && <TransformerTab jsonOutput={jsonOutput} setJsonOutput={setJsonOutput} />}
       {activeTab === 'charts' && <ChartsTab jsonOutput={jsonOutput} setJsonOutput={setJsonOutput} />}
       {activeTab === 'report' && <ReportTab templateData={jsonOutput} />}
+      {activeTab === 'aiStudio' && <AIStudioTab jsonOutput={jsonOutput} />}
     </div>
   );
 }

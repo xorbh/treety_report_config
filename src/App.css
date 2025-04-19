@@ -212,4 +212,19 @@ body {
 
 .modal-content button:hover {
   background-color: #0056b3;
+}
+
+.ai-studio-container {
+  padding: 20px;
+  height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+.json-viewer-section {
+  background: #272822;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  max-height: 300px;
+  overflow-y: auto;
 } 
